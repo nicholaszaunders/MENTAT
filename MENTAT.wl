@@ -23,6 +23,7 @@ generateNDArray::usage="Generates a list containing the basis Fock states of a H
 generateDMMatrixRepresentation::usage="Takes a given density matrix x and the Hilbert space characteristics numModes, cutoff and produces a numeric matrix isomorphic to that density matrix in the basis space {|n1,n2,...,nNumModes>} for \!\(\*FormBox[\(\*SubscriptBox[\(n\), \(i\)] < cutoff\),
 TraditionalForm]\). Returns square matrix of dimension (cutoff+1)^numModes."
 calculateNumericalMatrixFidelity::usage="Calculate the quantum fidelity of two positive semidefinite matrices x, y assuming they correspond to normalised and valid quantum states."
+vonNeumannEntropy::usage="Calculate the von Neumann entropy S(\[Rho]) of a density matrix state \[Rho]."
 
 
 Begin["`Private`"];
@@ -361,7 +362,9 @@ CenterDot[x,y[[j]]],
 
 
 (*Sets associativity, i.e. Ket[1]\[CircleTimes]Ket[1]\[CircleTimes]Ket[1] = Ket[1,1,1]. 
-Left commented out here because it doesn't seem to be critical to operation and including it breaks some functionality.*)
+Left commented out here because it doesn't seem to be critical to operation and including it breaks some functionality. 
+Specifically, it breaks the ability to do distributivity - (|1\[RightAngleBracket]+2|2\[RightAngleBracket])\[CircleTimes]|1\[RightAngleBracket] gives 1 for example. I don't know why this is occurring, but it seems to me the value of native associativity
+is not worth the cost of fixing whatever presumably deep-level bug is. Plus, while bracketing is annoying it is more explicit.*)
 (*SetAttributes[CircleTimes,Flat]*)
 
 
@@ -529,6 +532,23 @@ Return[rhoMatrix]
 (*Calculate the quantum fidelity of two positive semidefinite matrices x, y assuming they correspond to normalised and valid quantum states.*)
 calculateNumericalMatrixFidelity[x_,y_]:=
 Tr[MatrixPower[MatrixPower[x,1/2] . y . MatrixPower[x,1/2],1/2]]^2
+
+
+(*Calculate the von Neumann entropy of a given density matrix state.*)
+vonNeumannEntropy[x_?isDensityState,numModes_,cutoff_]:=
+Module[
+{numericalMatrix,eigenvalues},
+numericalMatrix=generateDMMatrixRepresentation[x,numModes,cutoff];
+eigenvalues=Eigenvalues[numericalMatrix];
+Sum[
+If[
+eigenvalues[[i]]==0,
+0,
+-eigenvalues[[i]]*Log2[eigenvalues[[i]]]
+],
+{i,1,Length[eigenvalues]}
+]
+]
 
 
 Print["@MENTAT: All functions loaded. 
