@@ -227,12 +227,25 @@ getPre[x]*getPre[y]*Ket[getNumDMLeft[x]],
 ]
 
 
-(*Extend inner product to operations with scalars, to cover edge cases.*)
-CenterDot[x_?isQuantumState,Except[y_?isQuantumState]]:=
+(*Extend inner product to operations with scalars.
+Cover distributivity with scalars.*)
+CenterDot[x_?isKet|x_?isBra|x_?isDensity,Except[y_?isQuantumState]]:=
 y*x
 
-CenterDot[Except[y_?isQuantumState],x_?isQuantumState]:=
-y*x
+CenterDot[Except[x_?isQuantumState],y_?isKet|y_?isBra|y_?isDensity]:=
+x*y
+
+CenterDot[x_?isKetState|x_?isBraState|x_?isDensityState,Except[y_?isQuantumState]]:=
+Sum[
+y*x[[i]],
+{i,Length[x]}
+]
+
+CenterDot[Except[x_?isQuantumState],y_?isKetState|y_?isBraState|y_?isDensityState]:=
+Sum[
+x*y[[i]],
+{i,Length[y]}
+]
 
 
 (*Extend inner product to bra and ket states (distributivity).
@@ -357,21 +370,27 @@ CenterDot[x,y[[j]]],
 ]
 
 
+(*Extend inner product to expectation-value type products, where the multiplication is of the form \[LeftAngleBracket]a|\[CenterDot]b\[CenterDot]|c\[RightAngleBracket].*)
+CenterDot[x_?isBra|x_?isBraState,z_,y_?isKet|y_?isKetState]:=
+CenterDot[x,CenterDot[z,y]]
+
+
 (* ::Section:: *)
 (*Outer product \[CircleTimes]*)
-
-
-(*Sets associativity, i.e. Ket[1]\[CircleTimes]Ket[1]\[CircleTimes]Ket[1] = Ket[1,1,1]. 
-Left commented out here because it doesn't seem to be critical to operation and including it breaks some functionality. 
-Specifically, it breaks the ability to do distributivity - (|1\[RightAngleBracket]+2|2\[RightAngleBracket])\[CircleTimes]|1\[RightAngleBracket] gives 1 for example. I don't know why this is occurring, but it seems to me the value of native associativity
-is not worth the cost of fixing whatever presumably deep-level bug is. Plus, while bracketing is annoying it is more explicit.*)
-(*SetAttributes[CircleTimes,Flat]*)
 
 
 (*Base definition of the tensor product. 
 We restrict operation to kets since I can't think of any reason why bras or density matrices would need to be directly tensor operated on.*)
 CircleTimes[x_?isKet,y_?isKet]:=
 getPre[x]*getPre[y]Ket[getNum[x],getNum[y]]
+
+
+(*Sets associativity, i.e. Ket[1]\[CircleTimes]Ket[1]\[CircleTimes]Ket[1] = Ket[1,1,1].
+For a given n-tensor product, the product is replaced by a list, and in that list each Ket object is replaced by the Sequence of Fock-basis arguments. The list is then transformed
+back into a Ket object.*)
+
+CircleTimes[x__?isKet]:=
+Times@@(List[x]/.y_?isKet->getPre[y])*Ket@@(List[x]/.y_?isKet->getNum[y])
 
 
 (*Defining compatibility with scalar (0-dimension) quantities*)
@@ -382,7 +401,7 @@ CircleTimes[Except[x_?isKet|x_?isKetState],y_?isKet]:=
 getPre[y]*x Ket[getNum[y]]
 
 CircleTimes[Except[x_?isKet|x_?isKetState],Except[y_?isKet|y_?isKetState]]:=
-x y
+x*y
 
 
 (*Defining distributivity in the same manner as above.*)
@@ -478,12 +497,10 @@ Note: this is less of a mathematically rigorous definition and more of a computa
 partialTrace[x_?isDensity,tracedModesList_]:=
 Module[
 {numLeft, numRight,tracedNumLeft,tracedNumRight},
-
 numLeft=List[getNumDMLeft[x]];
 numRight=List[getNumDMRight[x]];
-tracedNumLeft=Delete[numLeft,List[tracedModesList]];
-tracedNumRight=Delete[numRight,List[tracedModesList]];
-
+tracedNumLeft=Delete[numLeft,List/@tracedModesList];
+tracedNumRight=Delete[numRight,List/@tracedModesList];
 If[
 numLeft[[tracedModesList]]===numRight[[tracedModesList]],
 getPre[x]*SmallCircle[Ket[tracedNumLeft/.List:>Sequence],Bra[tracedNumRight/.List:>Sequence]],
