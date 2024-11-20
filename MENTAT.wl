@@ -382,7 +382,7 @@ CenterDot[x,CenterDot[z,y]]
 (*Base definition of the tensor product. 
 We restrict operation to kets since I can't think of any reason why bras or density matrices would need to be directly tensor operated on.*)
 CircleTimes[x_?isKet,y_?isKet]:=
-getPre[x]*getPre[y]Ket[getNum[x],getNum[y]]
+getPre[x]*getPre[y]*Ket[getNum[x],getNum[y]]
 
 
 (*Sets associativity, i.e. Ket[1]\[CircleTimes]Ket[1]\[CircleTimes]Ket[1] = Ket[1,1,1].
