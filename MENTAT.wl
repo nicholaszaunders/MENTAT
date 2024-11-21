@@ -15,6 +15,7 @@ getPre::usage="Returns prefactor of the input ket, bra, or density matrix."
 getNum::usage="Returns Fock basis sequence of the input ket or bra."
 getNumDMLeft::usage="Returns Fock basis sequence of the ket half of input density matrix."
 getNumDMRight::usage="Returns Fock basis sequence of the bra half of input density matrix."
+isIdentity::usage="Returns True is argument is the identity operator \[ScriptCapitalI]."
 makeCoherentState::usage="Takes complex amplitude \[Alpha] and maximum Fock-state argument 'cutoff' and returns the ket state corresponding to the single-mode coherent state |\[Alpha]> up to cutoff."
 makeTMSVSState::usage="Takes squeezing value \[Chi] and maximum Fock-state argument 'cutoff' and returns the ket state corresponding to the two-mode squeezed vacuum state |\[Chi]> up to cutoff."
 beamSplitter::usage="Implements beamsplitter functionality for a given ket-state x. Takes as input a single ket x, the beamsplitter transmissivity \[Tau], and the indices of the two modes to be mixed. Returns the ket state x' after the unitary beamsplitter is applied."
@@ -35,7 +36,7 @@ Begin["`Private`"];
 
 (*Identifier function for the 'ket' object. Returns True if the object is a ket.
  The algebra uses Mathematica's built-in Times to deal with scalar multiplication, so I define a ket as any sequence with the built-in header Ket or any sequence with the header Ket multiplied by some arbitrary quantity.*)
- isKet[expr_]:=
+isKet[expr_]:=
 MatchQ[
 expr,
 __Ket|Times[_,__Ket]
@@ -370,7 +371,7 @@ CenterDot[x,y[[j]]],
 ]
 
 
-(*Extend inner product to expectation-value type products, where the multiplication is of the form \[LeftAngleBracket]a|\[CenterDot]b\[CenterDot]|c\[RightAngleBracket].*)
+(*Extend inner product to be associative for expectation-value type products, where the multiplication is of the form \[LeftAngleBracket]a|\[CenterDot]b\[CenterDot]|c\[RightAngleBracket].*)
 CenterDot[x_?isBra|x_?isBraState,z_,y_?isKet|y_?isKetState]:=
 CenterDot[x,CenterDot[z,y]]
 
@@ -379,48 +380,195 @@ CenterDot[x,CenterDot[z,y]]
 (*Outer product \[CircleTimes]*)
 
 
-(*Base definition of the tensor product. 
-We restrict operation to kets since I can't think of any reason why bras or density matrices would need to be directly tensor operated on.*)
+(*Base definition of the tensor product. *)
 CircleTimes[x_?isKet,y_?isKet]:=
 getPre[x]*getPre[y]*Ket[getNum[x],getNum[y]]
 
+CircleTimes[x_?isBra,y_?isBra]:=
+getPre[x]*getPre[y]*Bra[getNum[x],getNum[y]]
 
-(*Sets associativity, i.e. Ket[1]\[CircleTimes]Ket[1]\[CircleTimes]Ket[1] = Ket[1,1,1].
-For a given n-tensor product, the product is replaced by a list, and in that list each Ket object is replaced by the Sequence of Fock-basis arguments. The list is then transformed
-back into a Ket object.*)
-
-CircleTimes[x__?isKet]:=
-Times@@(List[x]/.y_?isKet->getPre[y])*Ket@@(List[x]/.y_?isKet->getNum[y])
+CircleTimes[x_?isDensity,y_?isDensity]:=
+getPre[x]*getPre[y]*SmallCircle[Ket[getNumDMLeft[x],getNumDMLeft[y]],Bra[getNumDMRight[x],getNumDMRight[y]]]
 
 
-(*Defining compatibility with scalar (0-dimension) quantities*)
-CircleTimes[x_?isKet,Except[y_?isKet|y_?isKetState]]:=
-getPre[x]*y Ket[getNum[x]]
+(*Defining compatibility with scalar (0-dimension) quantities
+NOTE - BUG TO FIX: Associativity for scalars - e.g. 4\[CircleTimes](4|1\[RightAngleBracket]\[SmallCircle]\[LeftAngleBracket]2|)\[CircleTimes]4.
+*)
+CircleTimes[x_?isKet|x_?isBra|x_?isDensity,Except[y_?isQuantumState]]:=
+y*x
 
-CircleTimes[Except[x_?isKet|x_?isKetState],y_?isKet]:=
-getPre[y]*x Ket[getNum[y]]
-
-CircleTimes[Except[x_?isKet|x_?isKetState],Except[y_?isKet|y_?isKetState]]:=
+CircleTimes[Except[x_?isQuantumState],y_?isKet|y_?isBra|y_?isDensity]:=
 x*y
+
+CircleTimes[x_?isKetState|x_?isBraState|x_?isDensityState,Except[y_?isQuantumState]]:=
+Sum[
+y*x[[i]],
+{i,Length[x]}
+]
+
+CircleTimes[Except[x_?isQuantumState],y_?isKetState|y_?isBraState|y_?isDensityState]:=
+Sum[
+x*y[[i]],
+{i,Length[y]}
+]
+
+
+(*Sets associativity, i.e. Ket[1]\[CircleTimes]Ket[1]\[CircleTimes]Ket[1] = Ket[1,1,1].*)
+
+CircleTimes[x__/;Length[List[x]]>=3]:=
+Module[
+{args,len,iterProduct},
+args=List[x];
+len=Length[args];
+Do[
+iterProduct=CircleTimes[args[[1]],args[[2]]];
+args=Drop[args,1];
+args[[1]]=iterProduct,
+{i,len-2}
+];
+Return[CircleTimes[args[[1]],args[[2]]]]
+]
 
 
 (*Defining distributivity in the same manner as above.*)
-CircleTimes[x__?isKetState,y__?isKetState]:=
+CircleTimes[x_?isBraState,y_?isKetState]:=
 Sum[
 CircleTimes[x[[i]],y[[j]]],
 {i,Length[x]},
 {j,Length[y]}
 ]
-CircleTimes[x__?isKet,y__?isKetState]:=
-Sum[
-CircleTimes[x,y[[j]]],
-{j,Length[y]}
-]
-CircleTimes[x__?isKetState,y__?isKet]:=
+CircleTimes[x_?isBraState,y_?isKet]:=
 Sum[
 CircleTimes[x[[i]],y],
 {i,Length[x]}
 ]
+CircleTimes[x_?isBra,y_?isKetState]:=
+Sum[
+CircleTimes[x,y[[j]]],
+{j,Length[y]}
+]
+
+CircleTimes[x_?isKetState,y_?isBraState]:=
+Sum[
+SmallCircle[x[[i]],y[[j]]],
+{i,Length[x]},
+{j,Length[y]}
+]
+CircleTimes[x_?isKet,y_?isBraState]:=
+Sum[
+SmallCircle[x,y[[j]]],
+{j,Length[y]}
+]
+CircleTimes[x_?isKetState,y_?isBra]:=
+Sum[
+SmallCircle[x[[i]],y],
+{i,Length[x]}
+]
+
+CircleTimes[x_?isDensityState,y_?isBraState]:=
+Sum[
+CircleTimes[x[[i]],y[[j]]],
+{i,Length[x]},
+{j,Length[y]}
+]
+CircleTimes[x_?isDensity,y_?isBraState]:=
+Sum[
+CircleTimes[x,y[[j]]],
+{j,Length[y]}
+]
+CircleTimes[x_?isDensityState,y_?isBra]:=
+Sum[
+CircleTimes[x[[i]],y],
+{i,Length[x]}
+]
+
+CircleTimes[x_?isBraState,y_?isDensityState]:=
+Sum[
+CircleTimes[x[[i]],y[[j]]],
+{i,Length[x]},
+{j,Length[y]}
+]
+CircleTimes[x_?isBraState,y_?isDensity]:=
+Sum[
+CircleTimes[x[[i]],y],
+{i,Length[x]}
+]
+CircleTimes[x_?isBra,y_?isDensityState]:=
+Sum[
+CircleTimes[x,y[[j]]],
+{j,Length[y]}
+]
+
+CircleTimes[x_?isKetState,y_?isDensityState]:=
+Sum[
+SmallCircle[x[[i]],y[[j]]],
+{i,Length[x]},
+{j,Length[y]}
+]
+CircleTimes[x_?isKet,y_?isDensityState]:=
+Sum[
+SmallCircle[x,y[[j]]],
+{j,Length[y]}
+]
+CircleTimes[x_?isKetState,y_?isDensity]:=
+Sum[
+SmallCircle[x[[i]],y],
+{i,Length[x]}
+]
+
+CircleTimes[x_?isDensityState,y_?isKetState]:=
+Sum[
+CircleTimes[x[[i]],y[[j]]],
+{i,Length[x]},
+{j,Length[y]}
+]
+CircleTimes[x_?isDensityState,y_?isKet]:=
+Sum[
+CircleTimes[x[[i]],y],
+{i,Length[x]}
+]
+CircleTimes[x_?isDensity,y_?isKetState]:=
+Sum[
+CircleTimes[x,y[[j]]],
+{j,Length[y]}
+]
+
+CircleTimes[x_?isDensityState,y_?isDensityState]:=
+Sum[
+CircleTimes[x[[i]],y[[j]]],
+{i,Length[x]},
+{j,Length[y]}
+]
+CircleTimes[x_?isDensityState,y_?isDensity]:=
+Sum[
+CircleTimes[x[[i]],y],
+{i,Length[x]}
+]
+CircleTimes[x_?isDensity,y_?isDensityState]:=
+Sum[
+CircleTimes[x,y[[j]]],
+{j,Length[y]}
+]
+
+
+(* ::Section:: *)
+(*Identity operator*)
+
+
+(*Defining matching function for identity operator on a mode.*)
+(* !!! UNFINISHED !!! *)
+(*For some reason, the below function works when defined in a notebook but doesn't work when defined here. Revisit later.*)
+isIdentity[expr_]:=
+SameQ[expr,\[DoubleStruckCapitalI]]
+
+
+(*Defining vector multiplication dot product for identity operator.*)
+(* !!! UNFINISHED !!! *)
+CenterDot[x_?isQuantumState,y_?isIdentity]:=
+x
+
+CenterDot[x_?isIdentity,y_?isQuantumState]:=
+y
 
 
 (* ::Section:: *)
