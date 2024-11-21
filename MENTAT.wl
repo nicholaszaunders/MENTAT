@@ -1,5 +1,13 @@
 (* ::Package:: *)
 
+(* ::Text:: *)
+(*MENTAT package + documentation*)
+(*Nov 2024*)
+(*N. Zaunders, University of Queensland School of Mathematics and Physics*)
+(*To do:*)
+(*- Might be nice to do some functionality where you can specify a given norm P, i.e. 99.999, and the machine chooses the cutoff automatically such that the elements contained within the truncated state make up >= P of the continuous state.*)
+
+
 BeginPackage["MENTAT`"];
 Print["@MENTAT: Loading package..."]
 
@@ -391,9 +399,7 @@ CircleTimes[x_?isDensity,y_?isDensity]:=
 getPre[x]*getPre[y]*SmallCircle[Ket[getNumDMLeft[x],getNumDMLeft[y]],Bra[getNumDMRight[x],getNumDMRight[y]]]
 
 
-(*Defining compatibility with scalar (0-dimension) quantities
-NOTE - BUG TO FIX: Associativity for scalars - e.g. 4\[CircleTimes](4|1\[RightAngleBracket]\[SmallCircle]\[LeftAngleBracket]2|)\[CircleTimes]4.
-*)
+(*Defining compatibility with scalar (0-dimension) quantities.*)
 CircleTimes[x_?isKet|x_?isBra|x_?isDensity,Except[y_?isQuantumState]]:=
 y*x
 
@@ -431,103 +437,35 @@ Return[CircleTimes[args[[1]],args[[2]]]]
 
 
 (*Defining distributivity in the same manner as above.*)
-CircleTimes[x_?isBraState,y_?isKetState]:=
+CircleTimes[x_?isKetState,y_?isKetState]:=
 Sum[
 CircleTimes[x[[i]],y[[j]]],
 {i,Length[x]},
 {j,Length[y]}
 ]
-CircleTimes[x_?isBraState,y_?isKet]:=
+CircleTimes[x_?isKetState,y_?isKet]:=
 Sum[
 CircleTimes[x[[i]],y],
 {i,Length[x]}
 ]
-CircleTimes[x_?isBra,y_?isKetState]:=
+CircleTimes[x_?isKet,y_?isKetState]:=
 Sum[
 CircleTimes[x,y[[j]]],
 {j,Length[y]}
 ]
 
-CircleTimes[x_?isKetState,y_?isBraState]:=
-Sum[
-SmallCircle[x[[i]],y[[j]]],
-{i,Length[x]},
-{j,Length[y]}
-]
-CircleTimes[x_?isKet,y_?isBraState]:=
-Sum[
-SmallCircle[x,y[[j]]],
-{j,Length[y]}
-]
-CircleTimes[x_?isKetState,y_?isBra]:=
-Sum[
-SmallCircle[x[[i]],y],
-{i,Length[x]}
-]
-
-CircleTimes[x_?isDensityState,y_?isBraState]:=
+CircleTimes[x_?isBraState,y_?isBraState]:=
 Sum[
 CircleTimes[x[[i]],y[[j]]],
 {i,Length[x]},
 {j,Length[y]}
 ]
-CircleTimes[x_?isDensity,y_?isBraState]:=
-Sum[
-CircleTimes[x,y[[j]]],
-{j,Length[y]}
-]
-CircleTimes[x_?isDensityState,y_?isBra]:=
+CircleTimes[x_?isBraState,y_?isBra]:=
 Sum[
 CircleTimes[x[[i]],y],
 {i,Length[x]}
 ]
-
-CircleTimes[x_?isBraState,y_?isDensityState]:=
-Sum[
-CircleTimes[x[[i]],y[[j]]],
-{i,Length[x]},
-{j,Length[y]}
-]
-CircleTimes[x_?isBraState,y_?isDensity]:=
-Sum[
-CircleTimes[x[[i]],y],
-{i,Length[x]}
-]
-CircleTimes[x_?isBra,y_?isDensityState]:=
-Sum[
-CircleTimes[x,y[[j]]],
-{j,Length[y]}
-]
-
-CircleTimes[x_?isKetState,y_?isDensityState]:=
-Sum[
-SmallCircle[x[[i]],y[[j]]],
-{i,Length[x]},
-{j,Length[y]}
-]
-CircleTimes[x_?isKet,y_?isDensityState]:=
-Sum[
-SmallCircle[x,y[[j]]],
-{j,Length[y]}
-]
-CircleTimes[x_?isKetState,y_?isDensity]:=
-Sum[
-SmallCircle[x[[i]],y],
-{i,Length[x]}
-]
-
-CircleTimes[x_?isDensityState,y_?isKetState]:=
-Sum[
-CircleTimes[x[[i]],y[[j]]],
-{i,Length[x]},
-{j,Length[y]}
-]
-CircleTimes[x_?isDensityState,y_?isKet]:=
-Sum[
-CircleTimes[x[[i]],y],
-{i,Length[x]}
-]
-CircleTimes[x_?isDensity,y_?isKetState]:=
+CircleTimes[x_?isBra,y_?isBraState]:=
 Sum[
 CircleTimes[x,y[[j]]],
 {j,Length[y]}
