@@ -6,6 +6,7 @@
 (*N. Zaunders, University of Queensland School of Mathematics and Physics*)
 (*To do:*)
 (*- Might be nice to do some functionality where you can specify a given norm P, i.e. 99.999, and the machine chooses the cutoff automatically such that the elements contained within the truncated state make up >= P of the continuous state.*)
+(*- Change associativity to operate from right to left instead of left to right for better integration with QM.*)
 
 
 BeginPackage["MENTAT`"];
@@ -23,7 +24,15 @@ getPre::usage="Returns prefactor of the input ket, bra, or density matrix."
 getNum::usage="Returns Fock basis sequence of the input ket or bra."
 getNumDMLeft::usage="Returns Fock basis sequence of the ket half of input density matrix."
 getNumDMRight::usage="Returns Fock basis sequence of the bra half of input density matrix."
-isIdentity::usage="Returns True is argument is the identity operator \[ScriptCapitalI]."
+
+isIdentity::usage="Returns True if argument is the identity operator \[ScriptCapitalI]."
+isCreationOperator::usage="Returns True if argument is a creation operator of the form \!\(\*SuperscriptBox[SubscriptBox[OverscriptBox[\(a\), \(^\)], \(i\)], \(\[Dagger]\)]\)."
+isCreationOperatorPower::usage="Returns True if argument is a creation operator of the form \!\(\*SubscriptBox[OverscriptBox[\(a\), \(^\)], \(i\)]\) raised to integer power n."
+isAnnihilationOperator::usage="Returns True if argument is an annihilation operator of the form \!\(\*SubscriptBox[OverscriptBox[\(a\), \(^\)], \(i\)]\)."
+isAnnihilationOperatorPower::usage="Returns True if argument is an annihilation operator of the form \!\(\*SubscriptBox[OverscriptBox[\(a\), \(^\)], \(i\)]\) raised to integer power n."
+getCreateAnnihilateOperatorMode::usage="Returns mode index 'mode' of the input creation or annihilation operator \!\(\*SubscriptBox[OverscriptBox[\(a\), \(^\)], \(i\)]\)."
+getCreateAnnihilateOperatorPower::usage="Returns power pow of the input creation or annihilation operator."
+
 makeCoherentState::usage="Takes complex amplitude \[Alpha] and maximum Fock-state argument 'cutoff' and returns the ket state corresponding to the single-mode coherent state |\[Alpha]> up to cutoff."
 makeTMSVSState::usage="Takes squeezing value \[Chi] and maximum Fock-state argument 'cutoff' and returns the ket state corresponding to the two-mode squeezed vacuum state |\[Chi]> up to cutoff."
 beamSplitter::usage="Implements beamsplitter functionality for a given ket-state x. Takes as input a single ket x, the beamsplitter transmissivity \[Tau], and the indices of the two modes to be mixed. Returns the ket state x' after the unitary beamsplitter is applied."
@@ -119,11 +128,12 @@ FullForm]\)]
 ]
 
 
-(*Identifier function for any object that is a valid quantum state,i . e . any expression that is either a ket,bra,density matrix or sum of the respective objects .*)
+(*Identifier function for any object that is a valid quantum object, i.e. any expression that is either a ket, bra, density matrix, sum of the respective objects, operator, etc.
+Essentially acts as a reverse filter to identify scalars, which can be numerical, symbolic, etc.*)
 isQuantumState[expr_]:=
 MatchQ[
 expr,
-(_?isKet)|(_?isBra)|(_?isDensity)|(_?isKetState)|(_?isBraState)|(_?isDensityState)
+_?isKet|_?isBra|_?isDensity|_?isKetState|_?isBraState|_?isDensityState|_?isCreationOperator|_?isAnnihilationOperator|_?isCreationOperatorPower|_?isAnnihilationOperatorPower
 ]
 
 
@@ -490,6 +500,10 @@ CircleTimes[x,y[[j]]],
 
 
 (* ::Section:: *)
+(*Operators*)
+
+
+(* ::Subsection:: *)
 (*Identity operator*)
 
 
@@ -507,6 +521,127 @@ x
 
 CenterDot[x_?isIdentity,y_?isQuantumState]:=
 y
+
+
+(* ::Subsection:: *)
+(*Creation and annihilation operators*)
+
+
+(*Define identifier function for creation operators. Returns True if expr is a creation operator.*)
+isCreationOperator[expr_]:=
+MatchQ[
+expr,
+SuperDagger[Subscript[OverHat[a_Symbol],_Integer]]
+]
+
+isCreationOperatorPower[expr_]:=
+MatchQ[
+expr,
+Power[_?isCreationOperator,_Integer]
+]
+
+(*Define identifier function for annihilation operators. Returns True if expr is an annihilation operator.*)
+isAnnihilationOperator[expr_]:=
+MatchQ[
+expr,
+Subscript[OverHat[a_Symbol],_Integer]
+]
+
+isAnnihilationOperatorPower[expr_]:=
+MatchQ[
+expr,
+Power[_?isAnnihilationOperator,_Integer]
+]
+
+(*Returns the mode index that the creation or annihilation operator x should operate on.*)
+getCreateAnnihilateOperatorMode[x_?isCreationOperator|x_?isAnnihilationOperator|x_?isCreationOperatorPower|x_?isAnnihilationOperatorPower]:=
+Which[
+isCreationOperator[x],
+	x/.SuperDagger[Subscript[OverHat[_],mode_Integer]]->mode,
+isAnnihilationOperator[x],
+	x/.Subscript[OverHat[_],mode_Integer]->mode,
+isCreationOperatorPower[x],
+	x/.Power[SuperDagger[Subscript[OverHat[_],mode_Integer]],_]->mode,
+isAnnihilationOperatorPower[x],
+	x/.Power[Subscript[OverHat[_],mode_Integer],_]->mode
+]
+
+(*Returns the mode index that the creation or annihilation operator x should operate on.*)
+getCreateAnnihilateOperatorPower[x_?isCreationOperator|x_?isAnnihilationOperator|x_?isCreationOperatorPower|x_?isAnnihilationOperatorPower]:=
+Which[
+isCreationOperator[x],
+	1,
+isAnnihilationOperator[x],
+	1,
+isCreationOperatorPower[x],
+	x/.Power[SuperDagger[Subscript[OverHat[_],_]],pow_Integer]->pow,
+isAnnihilationOperatorPower[x],
+	x/.Power[Subscript[OverHat[_],_],pow_Integer]->pow
+]
+
+
+(*Define idempotency of the dagger operation.*)
+SuperDagger[SuperDagger[x_]]:=
+x
+
+
+(*Define raising and lowering operations. We re-use the operator \[CenterDot] to signify interaction with an operator.
+To give multimodal functionality, each operator is equipped with an integer subscript which corresponds to the mode it should operate on.*)
+CenterDot[x_?isCreationOperator,y_?isKet]:=
+Module[
+{operatorMode, modeList},
+modeList=List[getNum[y]];
+operatorMode=getCreateAnnihilateOperatorMode[x];
+Sqrt[modeList[[operatorMode]]+1]*getPre[y]*ReplaceAt[Ket[getNum[y]],{modeList[[operatorMode]]->modeList[[operatorMode]]+1},{operatorMode}]
+]
+
+CenterDot[x_?isAnnihilationOperator,y_?isKet]:=
+Module[
+{operatorMode, modeList},
+modeList=List[getNum[y]];
+operatorMode=getCreateAnnihilateOperatorMode[x];
+If[
+modeList[[operatorMode]]!=0,
+Sqrt[modeList[[operatorMode]]]*getPre[y]*ReplaceAt[Ket[getNum[y]],{modeList[[operatorMode]]->modeList[[operatorMode]]-1},{operatorMode}],
+0
+]
+]
+
+CenterDot[x_?isBra,y_?isCreationOperator]:=
+Module[
+{operatorMode, modeList},
+modeList=List[getNum[x]];
+operatorMode=getCreateAnnihilateOperatorMode[y];
+If[
+modeList[[operatorMode]]!=0,
+Sqrt[modeList[[operatorMode]]]*getPre[x]*ReplaceAt[Bra[getNum[x]],{modeList[[operatorMode]]->modeList[[operatorMode]]-1},{operatorMode}],
+0
+]
+]
+
+CenterDot[x_?isBra,y_?isAnnihilationOperator]:=
+Module[
+{operatorMode, modeList},
+modeList=List[getNum[x]];
+operatorMode=getCreateAnnihilateOperatorMode[y];
+Sqrt[modeList[[operatorMode]]+1]*getPre[x]*ReplaceAt[Bra[getNum[x]],{modeList[[operatorMode]]->modeList[[operatorMode]]+1},{operatorMode}]
+]
+
+(*TO DO: density matrices*)
+
+
+(*Sets power behaviour for creation and annihilation operators*)
+
+
+
+(*Sets associativity.*)
+
+
+
+(*Commutation relations*)
+
+
+(*Distributivity*)
 
 
 (* ::Section:: *)
