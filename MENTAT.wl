@@ -28,9 +28,10 @@ getNumDMLeft::usage="Returns Fock basis sequence of the ket half of input densit
 getNumDMRight::usage="Returns Fock basis sequence of the bra half of input density matrix."
 
 isIdentity::usage="Returns True if argument is the identity operator \[ScriptCapitalI]."
-isCreationOperator::usage="Returns True if argument is a creation operator of the form \!\(\*SuperscriptBox[SubscriptBox[OverscriptBox[\(a\), \(^\)], \(i\)], \(\[Dagger]\)]\)."
-isAnnihilationOperator::usage="Returns True if argument is an annihilation operator of the form \!\(\*SubscriptBox[OverscriptBox[\(a\), \(^\)], \(i\)]\)."
-isOperator::usage="Returns True if argument is a creation or annihilation operator raised to any power."
+isCreationOperator::usage="Returns True if argument is a creation operator of the form \!\(\*SuperscriptBox[SubscriptBox[OverscriptBox[\(a\), \(^\)], \(i\)], \(\[Dagger]\)]\). Can have prefactors and be raised to any power."
+isAnnihilationOperator::usage="Returns True if argument is an annihilation operator of the form \!\(\*SubscriptBox[OverscriptBox[\(a\), \(^\)], \(i\)]\). Can have prefactors and be raised to any power."
+isOperatorComposition::usage="Returns True is argument is a CenterDot composition of creation or annihilation operators."
+isOperator::usage="Returns True if argument is a creation or annihilation operator or composition thereof."
 isOperatorSum::usage="Returns True if argument is a sum of creation or annihilation operator raised to any power."
 getCreateAnnihilateOperatorMode::usage="Returns mode index 'mode' of the input creation or annihilation operator \!\(\*SubscriptBox[OverscriptBox[\(a\), \(^\)], \(i\)]\)."
 getCreateAnnihilateOperatorPower::usage="Returns power pow of the input creation or annihilation operator."
@@ -45,6 +46,7 @@ generateDMMatrixRepresentation::usage="Takes a given density matrix x and the Hi
 TraditionalForm]\). Returns square matrix of dimension (cutoff+1)^numModes."
 calculateNumericalMatrixFidelity::usage="Calculate the quantum fidelity of two positive semidefinite matrices x, y assuming they correspond to normalised and valid quantum states."
 vonNeumannEntropy::usage="Calculate the von Neumann entropy S(\[Rho]) of a density matrix state \[Rho]."
+fullTrace::usage="Calculates the trace of an input density matrix."
 
 
 Begin["`Private`"];
@@ -136,7 +138,7 @@ Essentially acts as a reverse filter to identify scalars, which can be numerical
 isQuantum[expr_]:=
 MatchQ[
 expr,
-_?isKet|_?isBra|_?isDensity|_?isKetState|_?isBraState|_?isDensityState|_?isCreationOperator|_?isAnnihilationOperator|_?isCreationOperatorPower|_?isAnnihilationOperatorPower|_?isOperatorSum
+_?isKet|_?isBra|_?isDensity|_?isKetState|_?isBraState|_?isDensityState|_?isOperator|_?isOperatorSum
 ]
 
 
@@ -550,14 +552,24 @@ expr,
 	|Times[_,Power[Subscript[OverHat[a_Symbol],_Integer],_Integer]]
 ]
 
-(*Define identifier function for any type of Fock state operator. Returns true if expr is a creation or annihilation operator or power thereof.*)
+(*Define identifier function for a composition of Fock state operators, i.e. Subscript[Overscript[a, ^], i]^\[Dagger]\[CenterDot]Subscript[Overscript[a, ^], j]^\[Dagger]\[CenterDot]..., etc. Returns True if expr is an arbitrary series of creation or annihilation operators
+CenterDot'd with each other.
+Works by checking truth of isCreation/isAnnihilation for each element in the Sequence passed to CenterDot. The Sequence of booleans is then checked via And; if every element returns true, 
+then it must be a composition of operators.*)
+isOperatorComposition[expr_]:=
+MatchQ[
+expr,
+CenterDot[x__/;(And@@(MatchQ[_?isCreationOperator|_?isAnnihilationOperator]/@(List[x])))]
+]
+
+(*Define identifier function for any type of Fock state operator. Returns True if expr is a creation or annihilation operator or composition thereof.*)
 isOperator[expr_]:=
 MatchQ[
 expr,
-_?isCreationOperator|_?isAnnihilationOperator
+_?isCreationOperator|_?isAnnihilationOperator|_?isOperatorComposition
 ]
 
-(*Define identifier function for any sum of Fock state operators. Returns true if expr is a sum of creation or annihilation operators or power thereof.*)
+(*Define identifier function for any sum of Fock state operators. Returns True if expr is a sum of creation or annihilation operators or composition thereof.*)
 isOperatorSum[expr_]:=
 MatchQ[
 expr,
@@ -702,10 +714,42 @@ Module[
 Sqrt[modeList[[operatorMode]]+1]*getPre[x]*getCreateAnnihilateOperatorPre[y]*ReplaceAt[Bra[getNum[x]],{modeList[[operatorMode]]->modeList[[operatorMode]]+1},{operatorMode}]
 ]
 
-(*TO DO: density matrices*)
+CenterDot[x_?isCreationOperator,y_?isDensity]:=
+Module[
+	{densityKet,operatorMode},
+	densityKet=Ket[getNumDMLeft[y]];
+	operatorMode=getCreateAnnihilateOperatorMode[x];
+getPre[y]*getCreateAnnihilateOperatorPre[x]*SmallCircle[SuperDagger[Subscript[\!\(\*OverscriptBox[\(a\), \(^\)]\), operatorMode]]\[CenterDot]densityKet,Bra[getNumDMRight[y]]]
+]
+
+CenterDot[x_?isAnnihilationOperator,y_?isDensity]:=
+Module[
+	{densityKet,operatorMode},
+	densityKet=Ket[getNumDMLeft[y]];
+	operatorMode=getCreateAnnihilateOperatorMode[x];
+getPre[y]*getCreateAnnihilateOperatorPre[x]*SmallCircle[Subscript[\!\(\*OverscriptBox[\(a\), \(^\)]\), operatorMode]\[CenterDot]densityKet,Bra[getNumDMRight[y]]]
+]
+
+CenterDot[x_?isDensity,y_?isCreationOperator]:=
+Module[
+	{densityBra,operatorMode},
+	densityBra=Bra[getNumDMRight[x]];
+	operatorMode=getCreateAnnihilateOperatorMode[y];
+getPre[x]*getCreateAnnihilateOperatorPre[y]*SmallCircle[Ket[getNumDMLeft[x]],densityBra\[CenterDot]SuperDagger[Subscript[\!\(\*OverscriptBox[\(a\), \(^\)]\), operatorMode]]]
+]
+
+CenterDot[x_?isDensity,y_?isAnnihilationOperator]:=
+Module[
+	{densityBra,operatorMode},
+	densityBra=Bra[getNumDMRight[x]];
+	operatorMode=getCreateAnnihilateOperatorMode[y];
+getPre[x]*getCreateAnnihilateOperatorPre[y]*SmallCircle[Ket[getNumDMLeft[x]],densityBra\[CenterDot]Subscript[\!\(\*OverscriptBox[\(a\), \(^\)]\), operatorMode]]
+]
+
 
 
 (*Sets power behaviour for creation and annihilation operators*)
+
 (*CenterDot[x_?isCreationOperatorPower,y_?isKet]:=
 CenterDot@@Join[ConstantArray[x/.Power[a_,_]->a,getCreateAnnihilateOperatorPower[x]],{y}]
 
@@ -729,10 +773,10 @@ CenterDot@@Join[{x},ConstantArray[y/.Power[a_,_]->a,getCreateAnnihilateOperatorP
 
 
 (*Sets associativity.*)
-CenterDot[x__?isOperator,y_?isKet]:=
+CenterDot[x_?isOperatorComposition,y_?isKet]:=
 Module[
 	{args,len,tempProd},
-	args=Join[{x},{y}];
+	args=Join[List@@x,{y}];
 	len=Length[args];
 Do[
 	tempProd=CenterDot[args[[-2]],args[[-1]]];
@@ -743,10 +787,10 @@ Do[
 Return[CenterDot[args[[-2]],args[[-1]]]]
 ]
 
-CenterDot[x_?isBra,y__?isOperator]:=
+CenterDot[x_?isBra,y__?isOperatorComposition]:=
 Module[
 	{args,len,tempProd},
-	args=Join[{x},{y}];
+	args=Join[{x},List@@y];
 	len=Length[args];
 Do[
 	tempProd=CenterDot[args[[1]],args[[2]]];
@@ -757,7 +801,33 @@ Do[
 Return[CenterDot[args[[1]],args[[2]]]]
 ]
 
-(*TO DO: density matrices*)
+CenterDot[x__?isOperatorComposition,y_?isDensity]:=
+Module[
+	{args,len,tempProd},
+	args=Join[List@@x,{y}];
+	len=Length[args];
+Do[
+	tempProd=CenterDot[args[[-2]],args[[-1]]];
+	args=Drop[args,-1];
+	args[[-1]]=tempProd,
+	{i,len-2}
+];
+Return[CenterDot[args[[-2]],args[[-1]]]]
+]
+
+CenterDot[x_?isDensity,y__?isOperatorComposition]:=
+Module[
+	{args,len,tempProd},
+	args=Join[{x},List@@y];
+	len=Length[args];
+Do[
+	tempProd=CenterDot[args[[1]],args[[2]]];
+	args=Drop[args,1];
+	args[[1]]=tempProd,
+	{i,len-2}
+];
+Return[CenterDot[args[[1]],args[[2]]]]
+]
 
 
 (*Distributivity*)
@@ -818,26 +888,75 @@ CenterDot[x[[i]],y[[j]]],
 {j,Length[y]}
 ]
 
-(*TO DO: density matrices*)
+CenterDot[x_?isOperator,y_?isDensityState]:=
+Sum[
+CenterDot[x,y[[j]]],
+{j,Length[y]}
+]
+
+CenterDot[x_?isOperatorSum,y_?isDensity]:=
+Sum[
+CenterDot[x[[i]],y],
+{i,Length[x]}
+]
+
+CenterDot[x_?isOperatorSum,y_?isDensitySum]:=
+Sum[
+CenterDot[x[[i]],y[[j]]],
+{i,Length[x]},
+{j,Length[y]}
+]
+
+CenterDot[x_?isDensity,y_?isOperatorSum]:=
+Sum[
+CenterDot[x,y[[j]]],
+{j,Length[y]}
+]
+
+CenterDot[x_?isDensityState,y_?isOperator]:=
+Sum[
+CenterDot[x[[i]],y],
+{i,Length[x]}
+]
+
+CenterDot[x_?isDensityState,y_?isOperatorSum]:=
+Sum[
+CenterDot[x[[i]],y[[j]]],
+{i,Length[x]},
+{j,Length[y]}
+]
 
 
-(*Extend inner product to be associative for expectation-value type products, where the multiplication is of the form \[LeftAngleBracket]a|\[CenterDot]operator\[CenterDot]|c\[RightAngleBracket].*)
-CenterDot[x_?isBra|x_?isBraState,z__?isOperator,y_?isKet|y_?isKetState]:=
+(*Extend inner product to be associative for expectation-value type products, where the multiplication is of the form \[Psi]\[CenterDot]operator\[CenterDot]\[Rho].*)
+CenterDot[x_?isBra|x_?isBraState|x_?isDensity|x_?isDensityState,z_?isOperator|z_?isOperatorSum,y_?isKet|y_?isKetState|y_?isDensity|y_?isDensityState]:=
 CenterDot[x,CenterDot[z,y]]
+
+(*Extend inner product to be associative for the special case of operator\[CenterDot]\[Rho]\[CenterDot]operator.*)
+CenterDor[x_?isOperator|x_?isOperatorSum,z_?isDensity|z_?isDensityState,y_?isOperator|y_?isOperatorSum]:=
+CenterDot[x,CenterDot[y,z]]
 
 
 (*Extension to scalar behaviour for operators*)
-(*CenterDot[x_?isOperator,Except[y_?isQuantum]]:=
+CenterDot[x_?isOperator,Except[y_?isQuantum]]:=
 y*x
 
 CenterDot[Except[x_?isQuantum],y_?isOperator]:=
-x*y*)
+x*y
+
+CenterDot[x_?isOperatorSum,Except[y_?isQuantum]]:=
+Sum[
+y*x[[i]],
+{i,Length[x]}
+]
+
+CenterDot[Except[y_?isQuantum],y_?isOperatorSum]:=
+Sum[
+x*y[[j]],
+{j,Length[y]}
+]
 
 
 (*Commutation relations*)
-
-
-(*Distributivity*)
 
 
 (* ::Section:: *)
@@ -988,6 +1107,35 @@ eigenvalues[[i]]==0,
 {i,1,Length[eigenvalues]}
 ]
 ]
+
+
+(*Trace out a density matrix according to the standard Fock eigenbasis. Quicker than generating a numerical matrix and using the inbuilt trace for large Hilbert spaces.*)
+fullTrace[x_?isDensity]:=
+If[
+getNumDMLeft[x]===getNumDMRight[x],
+getPre[x],
+0
+]
+
+fullTrace[x_?isDensityState]:=
+Sum[
+fullTrace[x[[i]]],
+{i,Length[x]}
+]
+
+
+(*xQuadratureMean[x_?isKet|x_?isDensity]:=
+If[
+	isKet[x],
+	inputState=x\[CenterDot]x^\[Dagger]
+];
+fullTrace[
+
+]
+
+modeList=List[getNum[y]];
+	operatorMode=getCreateAnnihilateOperatorMode[x];
+Sqrt[modeList[[operatorMode]]+1]*getPre[y]*getCreateAnnihilateOperatorPre[x]*ReplaceAt[Ket[getNum[y]],{modeList[[operatorMode]]->modeList[[operatorMode]]+1},{operatorMode}]*)
 
 
 Print["@MENTAT: All functions loaded. 
