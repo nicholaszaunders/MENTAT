@@ -7,6 +7,7 @@
 (*To do:*)
 (*- Might be nice to do some functionality where you can specify a given norm P, i.e. 99.999, and the machine chooses the cutoff automatically such that the elements contained within the truncated state make up >= P of the continuous state.*)
 (*- Change associativity to operate from right to left instead of left to right for better integration with QM?*)
+(*- Now that I've solved the operator formalism, maybe switch over some of the functionality / definitions to use operators instead of hardcoding?*)
 
 
 BeginPackage["MENTAT`"];
@@ -727,7 +728,11 @@ Module[
 	{densityKet,operatorMode},
 	densityKet=Ket[getNumDMLeft[y]];
 	operatorMode=getCreateAnnihilateOperatorMode[x];
-getPre[y]*getCreateAnnihilateOperatorPre[x]*SmallCircle[Subscript[\!\(\*OverscriptBox[\(a\), \(^\)]\), operatorMode]\[CenterDot]densityKet,Bra[getNumDMRight[y]]]
+If[
+	Subscript[\!\(\*OverscriptBox[\(a\), \(^\)]\), operatorMode]\[CenterDot]densityKet=!=0,
+	getPre[y]*getCreateAnnihilateOperatorPre[x]*SmallCircle[Subscript[\!\(\*OverscriptBox[\(a\), \(^\)]\), operatorMode]\[CenterDot]densityKet,Bra[getNumDMRight[y]]],
+	0
+]
 ]
 
 CenterDot[x_?isDensity,y_?isCreationOperator]:=
@@ -735,7 +740,11 @@ Module[
 	{densityBra,operatorMode},
 	densityBra=Bra[getNumDMRight[x]];
 	operatorMode=getCreateAnnihilateOperatorMode[y];
-getPre[x]*getCreateAnnihilateOperatorPre[y]*SmallCircle[Ket[getNumDMLeft[x]],densityBra\[CenterDot]SuperDagger[Subscript[\!\(\*OverscriptBox[\(a\), \(^\)]\), operatorMode]]]
+If[
+	densityBra\[CenterDot]SuperDagger[Subscript[\!\(\*OverscriptBox[\(a\), \(^\)]\), operatorMode]]=!=0
+	getPre[x]*getCreateAnnihilateOperatorPre[y]*SmallCircle[Ket[getNumDMLeft[x]],densityBra\[CenterDot]SuperDagger[Subscript[\!\(\*OverscriptBox[\(a\), \(^\)]\), operatorMode]]],
+	0
+]
 ]
 
 CenterDot[x_?isDensity,y_?isAnnihilationOperator]:=
@@ -900,7 +909,7 @@ CenterDot[x[[i]],y],
 {i,Length[x]}
 ]
 
-CenterDot[x_?isOperatorSum,y_?isDensitySum]:=
+CenterDot[x_?isOperatorSum,y_?isDensityState]:=
 Sum[
 CenterDot[x[[i]],y[[j]]],
 {i,Length[x]},
