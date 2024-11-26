@@ -4,10 +4,19 @@
 (*MENTAT package + documentation*)
 (*Nov 2024*)
 (*N. Zaunders, University of Queensland School of Mathematics and Physics*)
+(*"MENTAT: Human Input, Machine Speeds"*)
+(**)
+(*----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*)
+(**)
 (*To do:*)
 (*- Might be nice to do some functionality where you can specify a given norm P, i.e. 99.999, and the machine chooses the cutoff automatically such that the elements contained within the truncated state make up >= P of the continuous state.*)
 (*- Change associativity to operate from right to left instead of left to right for better integration with QM?*)
 (*- Now that I've solved the operator formalism, maybe switch over some of the functionality / definitions to use operators instead of hardcoding?*)
+(*- BUGFIX: Make notation consistent when doing psi.psi^dagger vs. psi \smallcircle psi^dagger for single kets vs. sums of kets (FIXED)*)
+(*- BUGFIX: Do power functionality for creation/annihilation operators*)
+(*- BUGFIX: why doesn't a\[CenterDot]a\[CenterDot]\[Psi] work? (FIXED)*)
+(*- BUGFIX: fullTrace of Bell \[Psi]+ gives zero (FIXED)*)
+(*- BUGFIX: dagger on scalars gives conjugate*)
 
 
 BeginPackage["MENTAT`"];
@@ -109,8 +118,7 @@ FullForm]\)]
 
 
 (*Identifier function for the 'density matrix' object. Returns true if expr is a ket object vector 'small-circle'-multiplied by a bra object.
-We use the SmallCircle operator \[SmallCircle] / \[SmallCircle] to fill the definition of a density state class.
-Annoyingly, even though technically we should be able to use our vector multiplication operator \[CenterDot] to fill both the inner and outer product, this doesn't play well with Mathematica because using the same operator for both operations and for 'definitions' of the density matrix causes recursion. I could use the same operator if I found a way to manually halt recursion when evaluating, but using two different operators is easiest for now.*)
+We use the SmallCircle operator \[SmallCircle] / \[SmallCircle] to fill the definition of a density state class.*)
 isDensity[expr_]:=
 MatchQ[
 expr,
@@ -210,19 +218,9 @@ getPre[x]*getPre[y],
 ]
 
 
-(*Define vector multiplication for vector outer product of two pure states. Returns density matrix.
-If x is a ket and y a bra, then 
-	If both prefactors are 1 (recalling that we define density matrix objects explicitly via the CenterDot of a ket and bra) do nothing
-	If a prefactor is non-unity, simplify by bringing it to the front.
-Note that we have to use a more general pattern-matching strategy (i.e. not isBra or isKet) because we want to avoid having to explicitly define the edge case of a pure bra times a pure ket; this causes infinite recursion.*)
-SmallCircle[Times[preKet_,Ket[numKet__]],Bra[numBra__]]:=
-Times[preKet,SmallCircle[Ket[numKet],Bra[numBra]]]
-
-SmallCircle[Ket[numKet__],Times[preBra_,Bra[numBra__]]]:=
-Times[preBra,SmallCircle[Ket[numKet],Bra[numBra]]]
-
-SmallCircle[Times[preKet_,Ket[numKet__]],Times[preBra_,Bra[numBra__]]]:=
-Times[preKet,preBra,SmallCircle[Ket[numKet],Bra[numBra]]]
+(*Define vector multiplication for vector outer product of two pure states. Returns density matrix.*)
+CenterDot[x_?isKet,y_?isBra]:=
+getPre[x]*getPre[y]*SmallCircle[Ket[getNum[x]],Bra[getNum[y]]]
 
 
 (*Define vector multiplication for inner product between two density matrices. Returns density matrix.*)
@@ -294,18 +292,18 @@ CenterDot[x,y[[j]]],
 
 CenterDot[x_?isKetState,y_?isBraState]:=
 Sum[
-SmallCircle[x[[i]],y[[j]]],
+CenterDot[x[[i]],y[[j]]],
 {i,Length[x]},
 {j,Length[y]}
 ]
 CenterDot[x_?isKet,y_?isBraState]:=
 Sum[
-SmallCircle[x,y[[j]]],
+CenterDot[x,y[[j]]],
 {j,Length[y]}
 ]
 CenterDot[x_?isKetState,y_?isBra]:=
 Sum[
-SmallCircle[x[[i]],y],
+CenterDot[x[[i]],y],
 {i,Length[x]}
 ]
 
@@ -345,18 +343,18 @@ CenterDot[x,y[[j]]],
 
 CenterDot[x_?isKetState,y_?isDensityState]:=
 Sum[
-SmallCircle[x[[i]],y[[j]]],
+CenterDot[x[[i]],y[[j]]],
 {i,Length[x]},
 {j,Length[y]}
 ]
 CenterDot[x_?isKet,y_?isDensityState]:=
 Sum[
-SmallCircle[x,y[[j]]],
+CenterDot[x,y[[j]]],
 {j,Length[y]}
 ]
 CenterDot[x_?isKetState,y_?isDensity]:=
 Sum[
-SmallCircle[x[[i]],y],
+CenterDot[x[[i]],y],
 {i,Length[x]}
 ]
 
@@ -741,7 +739,7 @@ Module[
 	densityBra=Bra[getNumDMRight[x]];
 	operatorMode=getCreateAnnihilateOperatorMode[y];
 If[
-	densityBra\[CenterDot]SuperDagger[Subscript[\!\(\*OverscriptBox[\(a\), \(^\)]\), operatorMode]]=!=0
+	densityBra\[CenterDot]SuperDagger[Subscript[\!\(\*OverscriptBox[\(a\), \(^\)]\), operatorMode]]=!=0,
 	getPre[x]*getCreateAnnihilateOperatorPre[y]*SmallCircle[Ket[getNumDMLeft[x]],densityBra\[CenterDot]SuperDagger[Subscript[\!\(\*OverscriptBox[\(a\), \(^\)]\), operatorMode]]],
 	0
 ]
@@ -781,22 +779,27 @@ CenterDot@@Join[{x},ConstantArray[y/.Power[a_,_]->a,getCreateAnnihilateOperatorP
 (*TO DO: density matrices*)
 
 
-(*Sets associativity.*)
+(*Sets associativity. For a given composition of N operators followed by a Ket object, the last operator in the sequence is applied to the Ket and the second-to-last item in the total
+sequence is updated with the result. The last item in the total sequence (the original Ket) is then deleted, leaving a composition of N-1 operators followed by a Ket. This repeats
+until there is only a single operator left, at which point the function returns the product of the operator applied to the Ket.*)
 CenterDot[x_?isOperatorComposition,y_?isKet]:=
 Module[
 	{args,len,tempProd},
 	args=Join[List@@x,{y}];
 	len=Length[args];
 Do[
-	tempProd=CenterDot[args[[-2]],args[[-1]]];
-	args=Drop[args,-1];
-	args[[-1]]=tempProd,
+	args[[-2]]=CenterDot[args[[-2]],args[[-1]]];
+	args=Drop[args,-1],
 	{i,len-2}
 ];
 Return[CenterDot[args[[-2]],args[[-1]]]]
 ]
 
-CenterDot[x_?isBra,y__?isOperatorComposition]:=
+(*This special case is needed for when the operator part is not enclosed in brackets.*)
+CenterDot[x__/;isOperatorComposition[CenterDot[x]],y_?isKet]:=
+CenterDot[CenterDot[x],y]
+
+CenterDot[x_?isBra,y_?isOperatorComposition]:=
 Module[
 	{args,len,tempProd},
 	args=Join[{x},List@@y];
@@ -809,6 +812,9 @@ Do[
 ];
 Return[CenterDot[args[[1]],args[[2]]]]
 ]
+
+CenterDot[x_?isBra,y__/;isOperatorComposition[CenterDot[y]]]:=
+CenterDot[x,CenterDot[y]]
 
 CenterDot[x__?isOperatorComposition,y_?isDensity]:=
 Module[
@@ -824,6 +830,9 @@ Do[
 Return[CenterDot[args[[-2]],args[[-1]]]]
 ]
 
+CenterDot[x__/;isOperatorComposition[CenterDot[x]],y_?isDensity]:=
+CenterDot[CenterDot[x],y]
+
 CenterDot[x_?isDensity,y__?isOperatorComposition]:=
 Module[
 	{args,len,tempProd},
@@ -837,6 +846,9 @@ Do[
 ];
 Return[CenterDot[args[[1]],args[[2]]]]
 ]
+
+CenterDot[x_?isDensity,y__/;isOperatorComposition[CenterDot[y]]]:=
+CenterDot[x,CenterDot[y]]
 
 
 (*Distributivity*)
@@ -941,7 +953,7 @@ CenterDot[x_?isBra|x_?isBraState|x_?isDensity|x_?isDensityState,z_?isOperator|z_
 CenterDot[x,CenterDot[z,y]]
 
 (*Extend inner product to be associative for the special case of operator\[CenterDot]\[Rho]\[CenterDot]operator.*)
-CenterDor[x_?isOperator|x_?isOperatorSum,z_?isDensity|z_?isDensityState,y_?isOperator|y_?isOperatorSum]:=
+CenterDot[x_?isOperator|x_?isOperatorSum,z_?isDensity|z_?isDensityState,y_?isOperator|y_?isOperatorSum]:=
 CenterDot[x,CenterDot[y,z]]
 
 
@@ -1015,6 +1027,11 @@ Conjugate[getPre[x]]*Ket[getNum[x]]
 
 SuperDagger[x_?isDensity]:=
 Conjugate[getPre[x]]*SmallCircle[Ket[getNumDMRight[x]],Bra[getNumDMLeft[x]]]
+
+
+(*Conjugate transpose behaviour for scalars, i.e. reduction to complex conjugation.*)
+(*SuperDagger[Except[x_?isQuantum]]:=
+Conjugate[x]*)
 
 
 (*Define distributivity of the conjugate transpose.*)
@@ -1121,7 +1138,7 @@ eigenvalues[[i]]==0,
 (*Trace out a density matrix according to the standard Fock eigenbasis. Quicker than generating a numerical matrix and using the inbuilt trace for large Hilbert spaces.*)
 fullTrace[x_?isDensity]:=
 If[
-getNumDMLeft[x]===getNumDMRight[x],
+List[getNumDMLeft[x]]===List[getNumDMRight[x]],
 getPre[x],
 0
 ]
