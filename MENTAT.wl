@@ -12,10 +12,8 @@
 (*- Might be nice to do some functionality where you can specify a given norm P, i.e. 99.999, and the machine chooses the cutoff automatically such that the elements contained within the truncated state make up >= P of the continuous state.*)
 (*- Change associativity to operate from right to left instead of left to right for better integration with QM?*)
 (*- Now that I've solved the operator formalism, maybe switch over some of the functionality / definitions to use operators instead of hardcoding?*)
-(*- BUGFIX: Make notation consistent when doing psi.psi^dagger vs. psi \smallcircle psi^dagger for single kets vs. sums of kets (FIXED)*)
+(*- BUGFIX: Make notation consistent when doing psi.psi^dagger vs. psi \smallcircle psi^dagger for single kets vs. sums of kets*)
 (*- BUGFIX: Do power functionality for creation/annihilation operators*)
-(*- BUGFIX: why doesn't a\[CenterDot]a\[CenterDot]\[Psi] work? (FIXED)*)
-(*- BUGFIX: fullTrace of Bell \[Psi]+ gives zero (FIXED)*)
 (*- BUGFIX: dagger on scalars gives conjugate*)
 
 
@@ -38,8 +36,8 @@ getNumDMLeft::usage="Returns Fock basis sequence of the ket half of input densit
 getNumDMRight::usage="Returns Fock basis sequence of the bra half of input density matrix."
 
 isIdentity::usage="Returns True if argument is the identity operator \[ScriptCapitalI]."
-isCreationOperator::usage="Returns True if argument is a creation operator of the form \!\(\*SuperscriptBox[SubscriptBox[OverscriptBox[\(a\), \(^\)], \(i\)], \(\[Dagger]\)]\). Can have prefactors and be raised to any power."
-isAnnihilationOperator::usage="Returns True if argument is an annihilation operator of the form \!\(\*SubscriptBox[OverscriptBox[\(a\), \(^\)], \(i\)]\). Can have prefactors and be raised to any power."
+isCreationOperator::usage="Returns True if argument is a creation operator. Can have prefactors and be raised to any power."
+isAnnihilationOperator::usage="Returns True if argument is an annihilation operator of the form. Can have prefactors and be raised to any power."
 isOperatorComposition::usage="Returns True is argument is a CenterDot composition of creation or annihilation operators."
 isOperator::usage="Returns True if argument is a creation or annihilation operator or composition thereof."
 isOperatorSum::usage="Returns True if argument is a sum of creation or annihilation operator raised to any power."
@@ -715,42 +713,58 @@ Sqrt[modeList[[operatorMode]]+1]*getPre[x]*getCreateAnnihilateOperatorPre[y]*Rep
 
 CenterDot[x_?isCreationOperator,y_?isDensity]:=
 Module[
-	{densityKet,operatorMode},
+	{densityKet,operatorMode,ketModeList},
 	densityKet=Ket[getNumDMLeft[y]];
 	operatorMode=getCreateAnnihilateOperatorMode[x];
-getPre[y]*getCreateAnnihilateOperatorPre[x]*SmallCircle[SuperDagger[Subscript[\!\(\*OverscriptBox[\(a\), \(^\)]\), operatorMode]]\[CenterDot]densityKet,Bra[getNumDMRight[y]]]
+	ketModeList=List[getNumDMLeft[y]];
+Sqrt[ketModeList[[operatorMode]]+1]*getPre[y]*getCreateAnnihilateOperatorPre[x]*SmallCircle[
+	ReplaceAt[Ket[getNumDMLeft[y]],{ketModeList[[operatorMode]]->ketModeList[[operatorMode]]+1},{operatorMode}],
+	Bra[getNumDMRight[y]]
+]
 ]
 
 CenterDot[x_?isAnnihilationOperator,y_?isDensity]:=
 Module[
-	{densityKet,operatorMode},
+	{densityKet,operatorMode,ketModeList},
 	densityKet=Ket[getNumDMLeft[y]];
 	operatorMode=getCreateAnnihilateOperatorMode[x];
+	ketModeList=List[getNumDMLeft[y]];
 If[
-	Subscript[\!\(\*OverscriptBox[\(a\), \(^\)]\), operatorMode]\[CenterDot]densityKet=!=0,
-	getPre[y]*getCreateAnnihilateOperatorPre[x]*SmallCircle[Subscript[\!\(\*OverscriptBox[\(a\), \(^\)]\), operatorMode]\[CenterDot]densityKet,Bra[getNumDMRight[y]]],
+	ketModeList[[operatorMode]]=!=0,
+	Sqrt[ketModeList[[operatorMode]]]*getPre[y]*getCreateAnnihilateOperatorPre[x]*SmallCircle[
+		ReplaceAt[Ket[getNumDMLeft[y]],{ketModeList[[operatorMode]]->ketModeList[[operatorMode]]-1},{operatorMode}],
+		Bra[getNumDMRight[y]]
+	],
 	0
 ]
 ]
 
 CenterDot[x_?isDensity,y_?isCreationOperator]:=
 Module[
-	{densityBra,operatorMode},
-	densityBra=Bra[getNumDMRight[x]];
+	{densityBra,operatorMode,braModeList},
+	densityBra=Ket[getNumDMLeft[x]];
 	operatorMode=getCreateAnnihilateOperatorMode[y];
+	braModeList=List[getNumDMLeft[x]];
 If[
-	densityBra\[CenterDot]SuperDagger[Subscript[\!\(\*OverscriptBox[\(a\), \(^\)]\), operatorMode]]=!=0,
-	getPre[x]*getCreateAnnihilateOperatorPre[y]*SmallCircle[Ket[getNumDMLeft[x]],densityBra\[CenterDot]SuperDagger[Subscript[\!\(\*OverscriptBox[\(a\), \(^\)]\), operatorMode]]],
+	braModeList[[operatorMode]]=!=0,
+	Sqrt[braModeList[[operatorMode]]]*getPre[x]*getCreateAnnihilateOperatorPre[y]*SmallCircle[
+		Ket[getNumDMLeft[x]],
+		ReplaceAt[Bra[getNumDMLeft[x]],{braModeList[[operatorMode]]->braModeList[[operatorMode]]-1},{operatorMode}]
+	],
 	0
 ]
 ]
 
 CenterDot[x_?isDensity,y_?isAnnihilationOperator]:=
 Module[
-	{densityBra,operatorMode},
-	densityBra=Bra[getNumDMRight[x]];
+	{densityBra,operatorMode,braModeList},
+	densityBra=Ket[getNumDMLeft[x]];
 	operatorMode=getCreateAnnihilateOperatorMode[y];
-getPre[x]*getCreateAnnihilateOperatorPre[y]*SmallCircle[Ket[getNumDMLeft[x]],densityBra\[CenterDot]Subscript[\!\(\*OverscriptBox[\(a\), \(^\)]\), operatorMode]]
+	braModeList=List[getNumDMLeft[x]];
+Sqrt[braModeList[[operatorMode]]+1]*getPre[x]*getCreateAnnihilateOperatorPre[y]*SmallCircle[
+	Ket[getNumDMLeft[x]],
+	ReplaceAt[Bra[getNumDMLeft[x]],{braModeList[[operatorMode]]->braModeList[[operatorMode]]+1},{operatorMode}]
+]
 ]
 
 
@@ -1126,7 +1140,7 @@ numericalMatrix=generateDMMatrixRepresentation[x,numModes,cutoff];
 eigenvalues=Eigenvalues[numericalMatrix];
 Sum[
 If[
-eigenvalues[[i]]==0,
+eigenvalues[[i]]===0,
 0,
 -eigenvalues[[i]]*Log2[eigenvalues[[i]]]
 ],
@@ -1165,7 +1179,7 @@ Sqrt[modeList[[operatorMode]]+1]*getPre[y]*getCreateAnnihilateOperatorPre[x]*Rep
 
 
 Print["@MENTAT: All functions loaded. 
-Welcome to MENTAT, a CAS system for Fock-state calculations in bosonic optical systems! Copyright N. Zaunders, University of Queensland, 2024. All rights reserved."]
+Welcome to MENTAT, a computer algebra system for Fock-state calculations in bosonic optical systems! Copyright N. Zaunders, University of Queensland, 2024. All rights reserved."]
 
 
 End[];
