@@ -11,14 +11,11 @@
 (*To do:*)
 (*- Might be nice to do some functionality where you can specify a given norm P, i.e. 99.999, and the machine chooses the cutoff automatically such that the elements contained within the truncated state make up >= P of the continuous state.*)
 (*- Now that I've solved the operator formalism, maybe switch over some of the functionality / definitions to use operators instead of hardcoding?*)
-(*- BUGFIX: Make notation consistent when doing psi.psi^dagger vs. psi \smallcircle psi^dagger for single kets vs. sums of kets*)
 (*- BUGFIX: Do power functionality for creation/annihilation operators*)
 (*- BUGFIX: dagger on scalars gives conjugate*)
 (*- BUGFIX: Extend functionality of operators to symbolic powers?*)
 (*- BUGFIX: why is a creation operator on the symbolic nth mode a valid form but an annihilation operator is not?*)
 (*- Add logic for simplifying operator expressions like (3a . 3a . 3a) to 27(a.a.a) - not necessary, but makes things prettier. (Though this does occur sometimes??)*)
-(*- Generalise beamsplitters to density matrices and bras? May not be worth the effort.*)
-(*- BUGFIX: fix dagger operation for scalars - causes a recursion loop??*)
 
 
 BeginPackage["MENTAT`"];
@@ -49,13 +46,15 @@ getCreateAnnihilateOperatorMode::usage="Returns mode index 'mode' of the input c
 getCreateAnnihilateOperatorPower::usage="Returns power pow of the input creation or annihilation operator."
 getCreateAnnihilateOperatorPre::usage="Returns prefactor pre of the input creation or annihilation operator."
 
-CoherentState::usage="Takes complex amplitude \[Alpha] and maximum Fock-state argument 'cutoff' and returns the ket state corresponding to the single-mode coherent state |\[Alpha]> up to cutoff."
-SqueezedVacuumState::usage="Takes squeezing value \[Chi] and maximum Fock-state argument 'cutoff' and returns the ket state corresponding to the two-mode squeezed vacuum state |\[Chi]> up to cutoff."
+CoherentState::usage="Takes complex amplitude \[Alpha] and maximum Fock-state argument 'cutoff' and returns the ket state corresponding to the single-mode coherent state |\[Alpha]> up to cutoff. 
+					  Optional argument allows cutoff to be chosen such that truncation error is below epsilon."
+SqueezedVacuumState::usage="Takes squeezing value \[Chi] and maximum Fock-state argument 'cutoff' and returns the ket state corresponding to the two-mode squeezed vacuum state |\[Chi]> up to cutoff.
+							Optional argument allows cutoff to be chosen such that truncation error is below epsilon."
 beamsplitter::usage="Implements beamsplitter functionality for a given ket-state x. Takes as input a single ket x, the beamsplitter transmissivity \[Tau], and the indices of the two modes to be mixed. Returns the ket state x' after the unitary beamsplitter is applied."
 partialTrace::usage="Partial trace calculator. Takes as input a density matrix x of a state with n modes and a list tracedModesList of length < n describing the indices of the modes to be traced out. Returns a density matrix x' corresponding to x with the specified modes traced out."
 generateNDArray::usage="Generates a list containing the basis Fock states of a Hilbert space corresponding to a system with number of modes numModes and maximum Fock-state argument cutoff. The list is of length (cutoff+1)^numModes."
 matrixRepresent::usage="Takes a given density matrix x and the Hilbert space characteristics numModes, cutoff and produces a numeric matrix isomorphic to that density matrix in the basis space {|n1,n2,...,nNumModes>} for \!\(\*FormBox[\(\*SubscriptBox[\(n\), \(i\)] < cutoff\),
-TraditionalForm]\). Returns square matrix of dimension (cutoff+1)^numModes."
+						TraditionalForm]\). Returns square matrix of dimension (cutoff+1)^numModes."
 numericalMatrixFidelity::usage="Calculate the quantum fidelity of two positive semidefinite matrices x, y assuming they correspond to normalised and valid quantum states."
 vonNeumannEntropy::usage="Calculate the von Neumann entropy S(\[Rho]) of a density matrix state \[Rho]."
 fullTrace::usage="Calculates the trace of an input density matrix."
@@ -312,23 +311,6 @@ CenterDot[x[[i]],y],
 {i,Length[x]}
 ]
 
-(*CenterDot[x_?isDensityState,y_?isBraState]:=
-Sum[
-CenterDot[x[[i]],y[[j]]],
-{i,Length[x]},
-{j,Length[y]}
-]
-CenterDot[x_?isDensity,y_?isBraState]:=
-Sum[
-CenterDot[x,y[[j]]],
-{j,Length[y]}
-]
-CenterDot[x_?isDensityState,y_?isBra]:=
-Sum[
-CenterDot[x[[i]],y],
-{i,Length[x]}
-]*)
-
 CenterDot[x_?isBraState,y_?isDensityState]:=
 Sum[
 CenterDot[x[[i]],y[[j]]],
@@ -345,23 +327,6 @@ Sum[
 CenterDot[x[[i]],y],
 {i,Length[x]}
 ]
-
-(*CenterDot[x_?isKetState,y_?isDensityState]:=
-Sum[
-CenterDot[x[[i]],y[[j]]],
-{i,Length[x]},
-{j,Length[y]}
-]
-CenterDot[x_?isKet,y_?isDensityState]:=
-Sum[
-CenterDot[x,y[[j]]],
-{j,Length[y]}
-]
-CenterDot[x_?isKetState,y_?isDensity]:=
-Sum[
-CenterDot[x[[i]],y],
-{i,Length[x]}
-]*)
 
 CenterDot[x_?isDensityState,y_?isKetState]:=
 Sum[
@@ -554,8 +519,8 @@ expr,
 	|Times[_,Power[Subscript[OverHat[a_Symbol],_Integer],_Integer]]
 ]
 
-(*Define identifier function for a composition of Fock state operators, i.e. Subscript[Overscript[a, ^], i]^\[Dagger]\[CenterDot]Subscript[Overscript[a, ^], j]^\[Dagger]\[CenterDot]..., etc. Returns True if expr is an arbitrary series of creation or annihilation operators
-CenterDot'd with each other.
+(*Define identifier function for a composition of Fock state operators, i.e. Subscript[Overscript[a, ^], i]^\[Dagger]\[CenterDot]Subscript[Overscript[a, ^], j]^\[Dagger]\[CenterDot]..., etc. Returns True if expr is an
+arbitrary series of creation or annihilation operators CenterDot'd with each other.
 Works by checking truth of isCreation/isAnnihilation for each element in the Sequence passed to CenterDot. The Sequence of booleans is then checked via And; if every element returns true, 
 then it must be a composition of operators.*)
 isOperatorComposition[expr_]:=
@@ -831,42 +796,6 @@ CenterDot[x_?isBra|x_?isDensity,y__/;isOperatorComposition[CenterDot[y]]]:=
 CenterDot[x,CenterDot[y]]
 
 
-(*CenterDot[x__?isOperatorComposition,y_?isDensity]:=
-Module[
-	{args,len,tempProd},
-	args=Join[List@@x,{y}];
-	len=Length[args];
-Do[
-	tempProd=CenterDot[args[[-2]],args[[-1]]];
-	args=Drop[args,-1];
-	args[[-1]]=tempProd,
-	{i,len-2}
-];
-Return[CenterDot[args[[-2]],args[[-1]]]]
-]
-
-CenterDot[x__/;isOperatorComposition[CenterDot[x]],y_?isDensity]:=
-CenterDot[CenterDot[x],y]
-
-
-CenterDot[x_?isDensity,y__?isOperatorComposition]:=
-Module[
-	{args,len,tempProd},
-	args=Join[{x},List@@y];
-	len=Length[args];
-Do[
-	tempProd=CenterDot[args[[1]],args[[2]]];
-	args=Drop[args,1];
-	args[[1]]=tempProd,
-	{i,len-2}
-];
-Return[CenterDot[args[[1]],args[[2]]]]
-]
-
-CenterDot[x_?isDensity,y__/;isOperatorComposition[CenterDot[y]]]:=
-CenterDot[x,CenterDot[y]]*)
-
-
 (*Distributivity*)
 CenterDot[x_?isOperator,y_?isOperatorSum]:=
 Sum[
@@ -993,17 +922,18 @@ x*y[[j]],
 ]
 
 
-(*Commutation relations*)
-(*Necessary?*)
-
-
 (* ::Subsection:: *)
 (*Conjugate transpose (dagger)*)
 
 
+(*Define idempotency of the dagger operation.*)
+SuperDagger[SuperDagger[x_]]:=
+x
+
+
 (*Defines operation of the conjugate tranpose operation ^Dagger[*]. For an input quantum state x, conjugate the prefactor and transpose the quantum state appropriately.*) 
 SuperDagger[x_?isKet]:=
-Conjugate[getPre[x]]*Bra[getNum[x]]
+Times[Conjugate[getPre[x]],Bra[getNum[x]]]
 
 SuperDagger[x_?isBra]:=
 Conjugate[getPre[x]]*Ket[getNum[x]]
@@ -1012,34 +942,70 @@ SuperDagger[x_?isDensity]:=
 Conjugate[getPre[x]]*SmallCircle[Ket[getNumDMRight[x]],Bra[getNumDMLeft[x]]]
 
 
-(*Conjugate transpose behaviour for scalars, i.e. reduction to complex conjugation.*)
-(*SuperDagger[Except[x_?isQuantum]]:=
-Conjugate[x]*)
-
-
-(*Define distributivity of the conjugate transpose.*)
+(*Define distributivity of the conjugate transpose for quantum states.*)
 SuperDagger[x_?isKetState]:=
 Sum[
-SuperDagger[x[[i]]],
-{i,Length[x]}
+	SuperDagger[x[[i]]],
+	{i,Length[x]}
 ]
 
 SuperDagger[x_?isBraState]:=
 Sum[
-SuperDagger[x[[i]]],
-{i,Length[x]}
+	SuperDagger[x[[i]]],
+	{i,Length[x]}
 ]
 
 SuperDagger[x_?isDensityState]:=
 Sum[
-SuperDagger[x[[i]]],
-{i,Length[x]}
+	SuperDagger[x[[i]]],
+	{i,Length[x]}
 ]
 
 
-(*Define idempotency of the dagger operation.*)
-SuperDagger[SuperDagger[x_]]:=
-x
+(*Defines operation of the conjugate tranpose for creation operators.*) 
+SuperDagger[SuperDagger[Subscript[OverHat[a_Symbol],mode_Integer]]]:=
+Subscript[OverHat[a],mode]
+
+SuperDagger[Times[pre_,SuperDagger[Subscript[OverHat[a_Symbol],mode_Integer]]]]:=
+Times[Conjugate[pre],Subscript[OverHat[a],mode]]
+
+SuperDagger[Power[SuperDagger[Subscript[OverHat[a_Symbol],mode_Integer]],pow_Integer]]:=
+Power[Subscript[OverHat[a],mode],pow]
+
+SuperDagger[Times[pre_,Power[SuperDagger[Subscript[OverHat[a_Symbol],mode_Integer]],pow_Integer]]]:=
+Times[Conjugate[pre],Power[Subscript[OverHat[a],mode],pow]]
+
+
+(*Defines operation of the conjugate tranpose for annihilation operators.
+By the way operators are defined in MENTAT, we don't need to define a behaviour for the base case - Mathematica handles it automatically.*) 
+SuperDagger[Times[pre_,Subscript[OverHat[a_Symbol],mode_Integer]]]:=
+Times[Conjugate[pre],SuperDagger[Subscript[OverHat[a],mode]]]
+
+SuperDagger[Power[Subscript[OverHat[a_Symbol],mode_Integer],pow_Integer]]:=
+Power[SuperDagger[Subscript[OverHat[a],mode]],pow]
+
+SuperDagger[Times[pre_,Power[Subscript[OverHat[a_Symbol],mode_Integer],pow_Integer]]]:=
+Times[Conjugate[pre],Power[SuperDagger[Subscript[OverHat[a],mode]],pow]]
+
+
+(*Define distributivity of the conjugate transpose for operators over addition.*)
+SuperDagger[x_?isOperatorSum]:=
+Sum[
+	SuperDagger[x[[i]]],
+	{i,Length[x]}
+]
+
+
+(*Define distributivity of the conjugate transpose for operators over composition.*)
+SuperDagger[x_?isOperatorComposition]:=
+CenterDot@@(SuperDagger/@(List@@x))
+
+
+(*Conjugate transpose behaviour for scalars, i.e. reduction to complex conjugation. We don't use isQuantum here to avoid recursion, since SuperDagger is part of the definition
+of creation operators. Unfortunately this choice, while making the frontend very nice, makes the backend quite clunky.*)
+
+(*How? There must be some way to halt the recursion of SuperDagger in some way.*)
+
 
 
 (* ::Section:: *)
@@ -1047,8 +1013,8 @@ x
 
 
 (*Returns a ket state describing the coherent state Ket[\[Alpha]]for a complex amplitude \[Alpha] and maximum Fock-state element cutoff.*)
-CoherentState[\[Alpha]_,cutoff_]:=
-Sum[Exp[-(Abs[\[Alpha]]^2/2)] \[Alpha]^n/\[Sqrt](n!) Ket[{n}],{n,0,cutoff}]
+CoherentState[\[Alpha]_,cutoff_:-1,epsilon_:-1]:=
+	Sum[Exp[-(Abs[\[Alpha]]^2/2)] \[Alpha]^n/\[Sqrt](n!) Ket[{n}],{n,0,cutoff}]
 
 
 (*Returns a two-mode squeezed vacuum state Ket[\[Chi]] for squeezing \[Chi] = tanh(r) and maximum Fock-state element cutoff.*)
@@ -1093,8 +1059,8 @@ Module[{
 	tracedNumLeft,
 	tracedNumRight
 },
-tracedNumLeft=Delete[numLeft,tracedModesList];
-tracedNumRight=Delete[numRight,tracedModesList];
+tracedNumLeft=Delete[numLeft,List/@tracedModesList];
+tracedNumRight=Delete[numRight,List/@tracedModesList];
 If[
 	numLeft[[tracedModesList]]===numRight[[tracedModesList]],
 	getPre[x]*SmallCircle[Ket[tracedNumLeft],Bra[tracedNumRight]],
