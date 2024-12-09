@@ -12,7 +12,6 @@
 (*- Might be nice to do some functionality where you can specify a given norm P, i.e. 99.999, and the machine chooses the cutoff automatically such that the elements contained within the truncated state make up >= P of the continuous state.*)
 (*- Now that I've solved the operator formalism, maybe switch over some of the functionality / definitions to use operators instead of hardcoding?*)
 (*- BUGFIX: Do power functionality for creation/annihilation operators*)
-(*- BUGFIX: dagger on scalars gives conjugate*)
 (*- BUGFIX: Extend functionality of operators to symbolic powers?*)
 (*- BUGFIX: why is a creation operator on the symbolic nth mode a valid form but an annihilation operator is not?*)
 (*- Add logic for simplifying operator expressions like (3a . 3a . 3a) to 27(a.a.a) - not necessary, but makes things prettier. (Though this does occur sometimes??)*)
@@ -499,24 +498,31 @@ y*)
 (*Creation and annihilation operators*)
 
 
-(*Define identifier function for creation operators. Returns True if expr is a creation operator.*)
+(*Define identifier function for creation operators. Returns True if expr is a creation operator.
+NOTE: We use 'Unevaluated' on the pattern to prevent recursion happening via intersection with our definition of SuperDagger - if we want to define SuperDagger behaviour on e.g.
+creation operators, then using isCreationOperator in the pattern specification calls SuperDagger, which calls isCreationOperator, which calls SuperDagger, etc. Unevaluated makes 
+the pattern matching literal, i.e. MatchQ only returns true if the input form is explicitly and literally the one given.*)
 isCreationOperator[expr_]:=
 MatchQ[
 expr,
+Unevaluated[
 	 SuperDagger[Subscript[OverHat[a_Symbol],_Integer]]
 	|Times[_,SuperDagger[Subscript[OverHat[a_Symbol],_Integer]]]
 	|Power[SuperDagger[Subscript[OverHat[a_Symbol],_Integer]],_Integer]
 	|Times[_,Power[SuperDagger[Subscript[OverHat[a_Symbol],_Integer]],_Integer]]
+	]
 ]
 
 (*Define identifier function for powers of annihilation operators. Returns True if expr is an annihilation operator.*)
 isAnnihilationOperator[expr_]:=
 MatchQ[
 expr,
+	Unevaluated[
 	 Subscript[OverHat[a_Symbol],_Integer]
 	|Times[_,Subscript[OverHat[a_Symbol],_Integer]]
 	|Power[Subscript[OverHat[a_Symbol],_Integer],_Integer]
 	|Times[_,Power[Subscript[OverHat[a_Symbol],_Integer],_Integer]]
+	]
 ]
 
 (*Define identifier function for a composition of Fock state operators, i.e. Subscript[Overscript[a, ^], i]^\[Dagger]\[CenterDot]Subscript[Overscript[a, ^], j]^\[Dagger]\[CenterDot]..., etc. Returns True if expr is an
@@ -1003,8 +1009,8 @@ CenterDot@@(SuperDagger/@(List@@x))
 
 (*Conjugate transpose behaviour for scalars, i.e. reduction to complex conjugation. We don't use isQuantum here to avoid recursion, since SuperDagger is part of the definition
 of creation operators. Unfortunately this choice, while making the frontend very nice, makes the backend quite clunky.*)
-
-(*How? There must be some way to halt the recursion of SuperDagger in some way.*)
+SuperDagger[Except[x_?isQuantum]]:=
+Conjugate[x]
 
 
 
