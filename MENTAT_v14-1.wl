@@ -11,8 +11,6 @@
 (*To do:*)
 (*- Might be nice to do some functionality where you can specify a given norm P, i.e. 99.999, and the machine chooses the cutoff automatically such that the elements contained within the truncated state make up >= P of the continuous state.*)
 (*- Now that I've solved the operator formalism, maybe switch over some of the functionality / definitions to use operators instead of hardcoding?*)
-(*- BUGFIX: Do power functionality for creation/annihilation operators*)
-(*- BUGFIX: Extend functionality of operators to symbolic powers?*)
 (*- BUGFIX: why is a creation operator on the symbolic nth mode a valid form but an annihilation operator is not?*)
 (*- Add logic for simplifying operator expressions like (3a . 3a . 3a) to 27(a.a.a) - not necessary, but makes things prettier. (Though this does occur sometimes??)*)
 
@@ -1051,14 +1049,54 @@ Conjugate[x]
 (*Functionality*)
 
 
-(*Returns a ket state describing the coherent state Ket[\[Alpha]]for a complex amplitude \[Alpha] and maximum Fock-state element cutoff.*)
-CoherentState[\[Alpha]_,cutoff_:-1,epsilon_:-1]:=
-	Sum[Exp[-(Abs[\[Alpha]]^2/2)] \[Alpha]^n/\[Sqrt](n!) Ket[{n}],{n,0,cutoff}]
+(*Returns a ket state describing the coherent state Ket[\[Alpha]]for a complex amplitude \[Alpha].
+Optional arguments allow the returned state to be specified either in terms of an explicit maximum Fock-state cutoff k, or alternatively a fraction F < 1 may be specified and
+the returned state will be the smallest-dimension state with norm >= F.*)
+Options[CoherentState]={k->-1,F->-1};
+
+CoherentState[\[Alpha]_,OptionsPattern[]]:=
+Module[{
+	norm=0.0,
+	i=0,
+	state
+},
+Which[
+	OptionValue[k]!=-1,
+		Sum[Exp[-(Abs[\[Alpha]]^2/2)] \[Alpha]^n/\[Sqrt](n!) Ket[{n}],{n,0,OptionValue[k]}],
+		
+	OptionValue[F]!=-1&&NumericQ[\[Alpha]],
+		While[norm<=OptionValue[F],
+			state=Sum[Exp[-(Abs[\[Alpha]]^2/2)] \[Alpha]^n/\[Sqrt](n!) Ket[{n}],{n,0,i}];
+			norm=SuperDagger[state]\[CenterDot]state;
+			i=i+1;
+		];
+		Return[state]
+]
+]
 
 
 (*Returns a two-mode squeezed vacuum state Ket[\[Chi]] for squeezing \[Chi] = tanh(r) and maximum Fock-state element cutoff.*)
-SqueezedVacuumState[\[Chi]_,cutoff_]:=
-Sum[\[Sqrt](1-\[Chi]^2) \[Chi]^n Ket[{n,n}],{n,0,cutoff}]
+Options[SqueezedVacuumState]={k->-1,F->-1};
+
+SqueezedVacuumState[\[Chi]_,OptionsPattern[]]:=
+Module[{
+	norm=0.0,
+	i=0,
+	state
+},
+Which[
+	OptionValue[k]!=-1,
+		Sum[\[Sqrt](1-\[Chi]^2) \[Chi]^n Ket[{n,n}],{n,0,OptionValue[k]}],
+		
+	OptionValue[F]!=-1&&NumericQ[\[Chi]],
+		While[norm<=OptionValue[F],
+			state=Sum[\[Sqrt](1-\[Chi]^2) \[Chi]^n Ket[{n,n}],{n,0,i}];
+			norm=SuperDagger[state]\[CenterDot]state;
+			i=i+1;
+		];
+		Return[state]
+]
+]
 
 
 (*Implements beamsplitter functionality for a given ket-state x. Takes as input a single ket x, the beamsplitter transmissivity \[Tau], and a list mixList containing the indices of the two modes
