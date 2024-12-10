@@ -38,6 +38,8 @@ getNumDMRight::usage="Returns Fock basis sequence of the bra half of input densi
 isIdentity::usage="Returns True if argument is the identity operator \[ScriptCapitalI]."
 isCreationOperator::usage="Returns True if argument is a creation operator. Can have prefactors and be raised to any power."
 isAnnihilationOperator::usage="Returns True if argument is an annihilation operator of the form. Can have prefactors and be raised to any power."
+isCreationOperatorPower::usage="Returns True if argument is explicitly a creation operator raised to a power."
+isAnnihilationOperatorPower::usage="Returns True if argument is explicitly an annihilation operator raised to a power."
 isOperatorComposition::usage="Returns True is argument is a CenterDot composition of creation or annihilation operators."
 isOperator::usage="Returns True if argument is a creation or annihilation operator or composition thereof."
 isOperatorSum::usage="Returns True if argument is a sum of creation or annihilation operator raised to any power."
@@ -499,29 +501,44 @@ y*)
 
 
 (*Define identifier function for creation operators. Returns True if expr is a creation operator.
-NOTE: We use 'Unevaluated' on the pattern to prevent recursion happening via intersection with our definition of SuperDagger - if we want to define SuperDagger behaviour on e.g.
+NOTE: We use HoldPattern on the pattern to prevent recursion happening via intersection with our definition of SuperDagger - if we want to define SuperDagger behaviour on e.g.
 creation operators, then using isCreationOperator in the pattern specification calls SuperDagger, which calls isCreationOperator, which calls SuperDagger, etc. Unevaluated makes 
 the pattern matching literal, i.e. MatchQ only returns true if the input form is explicitly and literally the one given.*)
 isCreationOperator[expr_]:=
 MatchQ[
-expr,
-Unevaluated[
-	 SuperDagger[Subscript[OverHat[a_Symbol],_Integer]]
-	|Times[_,SuperDagger[Subscript[OverHat[a_Symbol],_Integer]]]
-	|Power[SuperDagger[Subscript[OverHat[a_Symbol],_Integer]],_Integer]
-	|Times[_,Power[SuperDagger[Subscript[OverHat[a_Symbol],_Integer]],_Integer]]
+	expr,
+	HoldPattern[
+		 SuperDagger[Subscript[OverHat[a_Symbol],_Integer]]
+		|Times[_,SuperDagger[Subscript[OverHat[a_Symbol],_Integer]]]
 	]
 ]
 
 (*Define identifier function for powers of annihilation operators. Returns True if expr is an annihilation operator.*)
 isAnnihilationOperator[expr_]:=
 MatchQ[
-expr,
-	Unevaluated[
-	 Subscript[OverHat[a_Symbol],_Integer]
-	|Times[_,Subscript[OverHat[a_Symbol],_Integer]]
-	|Power[Subscript[OverHat[a_Symbol],_Integer],_Integer]
-	|Times[_,Power[Subscript[OverHat[a_Symbol],_Integer],_Integer]]
+	expr,
+	HoldPattern[
+		 Subscript[OverHat[a_Symbol],_Integer]
+		|Times[_,Subscript[OverHat[a_Symbol],_Integer]]
+	]
+]
+
+(*Define identifier function for powers of annihilation operators. Returns True if expr is an annihilation operator.*)
+isCreationOperatorPower[expr_]:=
+MatchQ[
+	expr,
+	HoldPattern[
+		Power[SuperDagger[Subscript[OverHat[_],_]],_]
+		|Times[_,Power[SuperDagger[Subscript[OverHat[_],_]],_]]
+	]
+]
+
+isAnnihilationOperatorPower[expr_]:=
+MatchQ[
+	expr,
+	HoldPattern[
+		Power[Subscript[OverHat[_],_],_]
+		|Times[_,Power[Subscript[OverHat[_],_],_]]
 	]
 ]
 
@@ -532,14 +549,14 @@ then it must be a composition of operators.*)
 isOperatorComposition[expr_]:=
 MatchQ[
 expr,
-CenterDot[x__/;(And@@(MatchQ[_?isCreationOperator|_?isAnnihilationOperator]/@(List[x])))]
+CenterDot[x__/;(And@@(MatchQ[_?isCreationOperator|_?isAnnihilationOperator|_?isCreationOperatorPower|_?isAnnihilationOperatorPower]/@(List[x])))]
 ]
 
-(*Define identifier function for any type of Fock state operator. Returns True if expr is a creation or annihilation operator or composition thereof.*)
+(*Define identifier function for any type of Fock state operator. Returns True if expr is a creation or annihilation operator or power or composition thereof.*)
 isOperator[expr_]:=
 MatchQ[
 expr,
-_?isCreationOperator|_?isAnnihilationOperator|_?isOperatorComposition
+_?isCreationOperator|_?isAnnihilationOperator|_?isCreationOperatorPower|_?isAnnihilationOperatorPower|_?isOperatorComposition
 ]
 
 (*Define identifier function for any sum of Fock state operators. Returns True if expr is a sum of creation or annihilation operators or composition thereof.*)
@@ -557,59 +574,66 @@ NumberMarks->True],
 FullForm]\)]
 ]
 
-(*Returns the mode index that the creation or annihilation operator x should operate on.*)
-getCreateAnnihilateOperatorMode[expr_?isCreationOperator|expr_?isAnnihilationOperator]:=
+(*Returns the mode index that the creation or annihilation operator x should operate on.
+Note that HoldPattern is required here, and in other functions of similar type, wherever pattern matching is performed on a pattern using SuperDagger to prevent recursion issues.*)
+getCreateAnnihilateOperatorMode[expr_?isCreationOperator|expr_?isCreationOperatorPower|expr_?isAnnihilationOperator|expr_?isAnnihilationOperatorPower]:=
 Which[
 isCreationOperator[expr],
 	Which[
-	MatchQ[expr,SuperDagger[Subscript[OverHat[_],mode_Integer]]],
-		expr/.SuperDagger[Subscript[OverHat[_],mode_Integer]]->mode,
-		
-	MatchQ[expr,Times[_,SuperDagger[Subscript[OverHat[_],mode_Integer]]]],
-		expr/.Times[_,SuperDagger[Subscript[OverHat[_],mode_Integer]]]->mode,
-		
-	MatchQ[expr,Power[SuperDagger[Subscript[OverHat[_],mode_Integer]],_]],
-		expr/.Power[SuperDagger[Subscript[OverHat[_],mode_Integer]],_]->mode,
-		
-	MatchQ[expr,Times[_,Power[SuperDagger[Subscript[OverHat[_],mode_Integer]],_]]],
-		expr/.Times[_,Power[SuperDagger[Subscript[OverHat[_],mode_Integer]],_]]->mode
+		MatchQ[expr,HoldPattern[SuperDagger[Subscript[OverHat[_],mode_Integer]]]],
+			expr/.HoldPattern[SuperDagger[Subscript[OverHat[_],mode_Integer]]]->mode,
+		MatchQ[expr,HoldPattern[Times[_,SuperDagger[Subscript[OverHat[_],mode_Integer]]]]],
+			expr/.HoldPattern[Times[_,SuperDagger[Subscript[OverHat[_],mode_Integer]]]]->mode
+	],
+isCreationOperatorPower[expr],
+	Which[		
+		MatchQ[expr,HoldPattern[Power[SuperDagger[Subscript[OverHat[_],mode_Integer]],_]]],
+			expr/.HoldPattern[Power[SuperDagger[Subscript[OverHat[_],mode_Integer]],_]]->mode,
+		MatchQ[expr,HoldPattern[Times[_,Power[SuperDagger[Subscript[OverHat[_],mode_Integer]],_]]]],
+			expr/.HoldPattern[Times[_,Power[SuperDagger[Subscript[OverHat[_],mode_Integer]],_]]]->mode
 	],
 isAnnihilationOperator[expr],
 	Which[
-	MatchQ[expr,Subscript[OverHat[_],mode_Integer]],
-		expr/.Subscript[OverHat[_],mode_Integer]->mode,
-		
-	MatchQ[expr,Times[_,Subscript[OverHat[_],mode_Integer]]],
-		expr/.Times[_,Subscript[OverHat[_],mode_Integer]]->mode,
-		
-	MatchQ[expr,Power[Subscript[OverHat[_],mode_Integer],_]],
-		expr/.Power[Subscript[OverHat[_],mode_Integer],_]->mode,
-		
-	MatchQ[expr,Times[_,Power[Subscript[OverHat[_],mode_Integer],_]]],
-		expr/.Times[_,Power[Subscript[OverHat[_],mode_Integer],_]]->mode
+		MatchQ[expr,Subscript[OverHat[_],mode_Integer]],
+			expr/.Subscript[OverHat[_],mode_Integer]->mode,	
+		MatchQ[expr,Times[_,Subscript[OverHat[_],mode_Integer]]],
+			expr/.Times[_,Subscript[OverHat[_],mode_Integer]]->mode
+	],
+isAnnihilationOperatorPower[expr],
+	Which[
+		MatchQ[expr,Power[Subscript[OverHat[_],mode_Integer],_]],
+			expr/.Power[Subscript[OverHat[_],mode_Integer],_]->mode,	
+		MatchQ[expr,Times[_,Power[Subscript[OverHat[_],mode_Integer],_]]],
+			expr/.Times[_,Power[Subscript[OverHat[_],mode_Integer],_]]->mode
 	]
 ]
 
 (*Returns the power that the creation or annihilation operator expr is raised to.*)
-getCreateAnnihilateOperatorPower[expr_?isCreationOperator|expr_?isAnnihilationOperator]:=
+getCreateAnnihilateOperatorPower[expr_?isCreationOperator|expr_?isCreationOperatorPower|expr_?isAnnihilationOperator|expr_?isAnnihilationOperatorPower]:=
 Which[
 isCreationOperator[expr],
 	Which[
-	MatchQ[expr,SuperDagger[Subscript[OverHat[_],mode_Integer]]],
+	MatchQ[expr,HoldPattern[SuperDagger[Subscript[OverHat[_],mode_Integer]]]],
 		1,
-	MatchQ[expr,Times[_,SuperDagger[Subscript[OverHat[_],mode_Integer]]]],
-		1,
-	MatchQ[expr,Power[SuperDagger[Subscript[OverHat[_],_]],pow_Integer]],
-		expr/.Power[SuperDagger[Subscript[OverHat[_],_]],pow_Integer]->pow,
-	MatchQ[expr,Times[_,Power[SuperDagger[Subscript[OverHat[_],_]],pow_Integer]]],
-		expr/.Times[_,Power[SuperDagger[Subscript[OverHat[_],_]],pow_Integer]]->pow
+	MatchQ[expr,HoldPattern[Times[_,SuperDagger[Subscript[OverHat[_],mode_Integer]]]]],
+		1
+	],
+isCreationOperatorPower[expr],
+	Which[
+	MatchQ[expr,HoldPattern[Power[SuperDagger[Subscript[OverHat[_],_]],pow_Integer]]],
+		expr/.HoldPattern[Power[SuperDagger[Subscript[OverHat[_],_]],pow_Integer]]->pow,
+	MatchQ[expr,HoldPattern[Times[_,Power[SuperDagger[Subscript[OverHat[_],_]],pow_Integer]]]],
+		expr/.HoldPattern[Times[_,Power[SuperDagger[Subscript[OverHat[_],_]],pow_Integer]]]->pow
 	],
 isAnnihilationOperator[expr],
 	Which[
 	MatchQ[expr,Subscript[OverHat[_],_]],
 		1,
 	MatchQ[expr,Times[_,Subscript[OverHat[_],_]]],
-		1,
+		1
+	],
+isAnnihilationOperatorPower[expr],
+	Which[
 	MatchQ[expr,Power[Subscript[OverHat[_],_],pow_Integer]],
 		expr/.Power[Subscript[OverHat[_],_],pow_Integer]->pow,
 	MatchQ[expr,Times[_,Power[Subscript[OverHat[_],_],pow_Integer]]],
@@ -618,25 +642,31 @@ isAnnihilationOperator[expr],
 ]
 
 (*Returns the prefactor of the creation or annihilation operator.*)
-getCreateAnnihilateOperatorPre[expr_?isCreationOperator|expr_?isAnnihilationOperator]:=
+getCreateAnnihilateOperatorPre[expr_?isCreationOperator|expr_?isCreationOperatorPower|expr_?isAnnihilationOperator|expr_?isAnnihilationOperatorPower]:=
 Which[
 isCreationOperator[expr],
 	Which[
-	MatchQ[expr,SuperDagger[Subscript[OverHat[_],_]]],
+	MatchQ[expr,HoldPattern[SuperDagger[Subscript[OverHat[_],_]]]],
 		1,
-	MatchQ[expr,Times[pre_,SuperDagger[Subscript[OverHat[_],_]]]],
-		expr/.Times[pre_,SuperDagger[Subscript[OverHat[_],_]]]->pre,
-	MatchQ[expr,Power[SuperDagger[Subscript[OverHat[_],_]],_]],
+	MatchQ[expr,HoldPattern[Times[pre_,SuperDagger[Subscript[OverHat[_],_]]]]],
+		expr/.HoldPattern[Times[pre_,SuperDagger[Subscript[OverHat[_],_]]]]->pre
+	],
+isCreationOperatorPower[expr],
+	Which[
+	MatchQ[expr,HoldPattern[Power[SuperDagger[Subscript[OverHat[_],_]],_]]],
 		1,
-	MatchQ[expr,Times[pre_,Power[SuperDagger[Subscript[OverHat[_],_]],_]]],
-		expr/.Times[pre_,Power[SuperDagger[Subscript[OverHat[_],_]],_]]->pre
+	MatchQ[expr,HoldPattern[Times[pre_,Power[SuperDagger[Subscript[OverHat[_],_]],_]]]],
+		expr/.HoldPattern[Times[pre_,Power[SuperDagger[Subscript[OverHat[_],_]],_]]]->pre
 	],
 isAnnihilationOperator[expr],
 	Which[
 	MatchQ[expr,Subscript[OverHat[_],_]],
 		1,
 	MatchQ[expr,Times[pre_,Subscript[OverHat[_],_]]],
-		expr/.Times[pre_,Subscript[OverHat[_],_]]->pre,
+		expr/.Times[pre_,Subscript[OverHat[_],_]]->pre
+	],
+isAnnihilationOperatorPower[expr],
+	Which[
 	MatchQ[expr,Power[Subscript[OverHat[_],_],_]],
 		1,
 	MatchQ[expr,Times[pre_,Power[Subscript[OverHat[_],_],_]]],
@@ -738,12 +768,20 @@ Sqrt[braModeList[[operatorMode]]]*getPre[x]*getCreateAnnihilateOperatorPre[y]*Sm
 
 
 
-(*Sets power behaviour for creation and annihilation operators*)
-
-(*CenterDot[x_?isCreationOperatorPower,y_?isKet]:=
-CenterDot@@Join[ConstantArray[x/.Power[a_,_]->a,getCreateAnnihilateOperatorPower[x]],{y}]
+(*Sets power behaviour for creation and annihilation operators. *)
+CenterDot[x_?isCreationOperatorPower,y_?isKet]:=
+getCreateAnnihilateOperatorPre[x]*CenterDot@@Join[
+	ConstantArray[SuperDagger[Subscript[OverHat[a],getCreateAnnihilateOperatorMode[x]]],getCreateAnnihilateOperatorPower[x]],
+	{y}
+]
 
 CenterDot[x_?isAnnihilationOperatorPower,y_?isKet]:=
+getCreateAnnihilateOperatorPre[x]*CenterDot@@Join[
+	ConstantArray[Subscript[OverHat[a],getCreateAnnihilateOperatorMode[x]],getCreateAnnihilateOperatorPower[x]],
+	{y}
+]
+
+(*CenterDot[x_?isAnnihilationOperatorPower,y_?isKet]:=
 CenterDot@@Join[ConstantArray[x/.Power[a_,_]->a,getCreateAnnihilateOperatorPower[x]],{y}]
 
 CenterDot[x_?isCreationOperatorPower,y_?isKet]:=
@@ -757,9 +795,6 @@ CenterDot@@Join[{x},ConstantArray[y/.Power[a_,_]->a,getCreateAnnihilateOperatorP
 
 CenterDot[x_?isBra,y_?isAnnihilationOperatorPower]:=
 CenterDot@@Join[{x},ConstantArray[y/.Power[a_,_]->a,getCreateAnnihilateOperatorPower[y]]]*)
-
-(*TO DO: Power functionality for operators*)
-(*TO DO: density matrices*)
 
 
 (*Sets associativity. For a given composition of N operators followed by a Ket object, the last operator in the sequence is applied to the Ket and the second-to-last item in the total
@@ -1007,11 +1042,9 @@ SuperDagger[x_?isOperatorComposition]:=
 CenterDot@@(SuperDagger/@(List@@x))
 
 
-(*Conjugate transpose behaviour for scalars, i.e. reduction to complex conjugation. We don't use isQuantum here to avoid recursion, since SuperDagger is part of the definition
-of creation operators. Unfortunately this choice, while making the frontend very nice, makes the backend quite clunky.*)
+(*Conjugate transpose behaviour for scalars, i.e. reduction to complex conjugation.*)
 SuperDagger[Except[x_?isQuantum]]:=
 Conjugate[x]
-
 
 
 (* ::Section:: *)
