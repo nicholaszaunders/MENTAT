@@ -32,36 +32,9 @@ In ``MENTAT``, we develop a heuristic, human-accessible CAS package that mimics 
 
 `MENTAT` is designed primarily for use by researchers and PhD students in any application where the Fock state representation is used to analyse a quantum protocol or circuit. Research works enabled specifically by `MENTAT` are currently in preparation by the author, and we anticipate it to become an important resource for future works.
 
-# Citations
-
-Citations to entries in paper.bib should be in
-[rMarkdown](http://rmarkdown.rstudio.com/authoring_bibliographies_and_citations.html)
-format.
-
-If you want to cite a software repository URL (e.g. something on GitHub without a preferred
-citation) then you can do it with the example BibTeX entry below for @fidgit.
-
-For a quick reference, the following citation commands can be used:
-- `@author:2001`  ->  "Author et al. (2001)"
-- `[@author:2001]` -> "(Author et al., 2001)"
-- `[@author1:2001; @author2:2001]` -> "(Author1 et al., 2001; Author2 et al., 2002)"
-
-# Figures
-
-Figures can be included like this:
-![Caption for example figure.\label{fig:example}](figure.png)
-and referenced from text using \autoref{fig:example}.
-
-Figure sizes can be customized by adding an optional second parameter:
-![Caption for example figure.](figure.png){ width=20% }
-
 # Acknowledgements
 
 The Australian Government supported
-this research through the Australian Research Coun-
-cil’s Linkage Projects funding scheme (Project No.
-LP200100601). The views expressed herein are those of
-the authors and are not necessarily those of the Aus-
-tralian Government or the Australian Research Council.
+this research through the Australian Research Council’s Linkage Projects funding scheme (Project No. LP200100601). The views expressed herein are those of the authors and are not necessarily those of the Australian Government or the Australian Research Council.
 
 # References
