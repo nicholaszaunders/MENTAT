@@ -16,7 +16,8 @@ affiliations:
    index: 1
    ror: 00rqy9422
 date: 12 December 2024
-bibliography: paper.bib
+bibliography:
+ - paper.bib
 ---
 
 # Summary
@@ -25,28 +26,11 @@ In the development of any practical quantum technology, from quantum computers t
 
 # Statement of Need
 
- `MENTAT` is a Mathematica-based Computer Algebra System (CAS) designed to provide efficient, but also human-intuitive, symbolic evaluation of quantum problems expressed in the Fock representation. ``MENTAT`` was designed primarily to address a major deficit in the suite of Fock-state-based software packages available to researchers: to our knowledge, no easily-accessible symbolic computational package for performing Fock-state computation exists. Informal surveys of researchers in the field showed that many researchers felt stifled by a lack of computational software, and were forced to write their own bespoke scripts or were forced to perform calculations by hand, an extremely inefficient task for problems greater than simple toy models. While some industry-produced computational packages do exist, such as Xanadu’s Python-based [Strawberry Fields](https://strawberryfields.ai/) and [MrMustard](https://github.com/XanaduAI/MrMustard) [@killoran2019], these tools are broadly numerical-only and specialised towards a specific purpose (i.e. efficient simulation of quantum-optical circuits), and lack the theoretical tools needed to effectively solve research problems. (For example, StrawberryFields has no functionality for determining the density matrix of a given state, or for even defining custom quantum states, which limit its usefulness in a research context.)
+ `MENTAT` is a Mathematica-based Computer Algebra System (CAS) designed to provide efficient, but also human-intuitive, symbolic evaluation of quantum problems expressed in the Fock representation. ``MENTAT`` was designed primarily to address a major deficit in the suite of Fock-state-based software packages available to researchers: to our knowledge, no easily-accessible symbolic computational package for performing Fock-state computation exists. Informal surveys of researchers in the field showed that many researchers felt stifled by a lack of computational software, and were forced to write their own bespoke scripts or were forced to perform calculations by hand, an extremely inefficient task for problems greater than simple toy models. While some industry-produced computational packages do exist, such as Xanadu’s Python-based [Strawberry Fields](https://strawberryfields.ai/) and [MrMustard](https://github.com/XanaduAI/MrMustard) [@Killoran2019], these tools are broadly numerical-only and specialised towards a specific purpose (i.e. efficient simulation of quantum-optical circuits), and lack the theoretical tools needed to effectively solve research problems. (For example, StrawberryFields has no functionality for determining the density matrix of a given state, or for even defining custom quantum states, which limit its usefulness in a research context.)
 
 In ``MENTAT``, we develop a heuristic, human-accessible CAS package that mimics the familiar process of doing pen-and-paper Fock-state calculations as closely as possible, which allows for unparalleled generality while also leveraging Mathematica's computational efficiency for symbolic algebra. The real power of ``MENTAT`` lies in allowing users to freely define fully generalised quantum states, operations, and measurements by simply writing them down, without any prerequisite knowledge of a specialised API or code structure; since it is possible to build most Fock-space operations out of only a few primitives, the limiting factor in what functionality `MENTAT` can offer is only the user’s imagination. `MENTAT` also offers functionality for a variety of common operators and processes found in theoretical quantum optics, such as conjugate transposition, inner and outer vector products, tensor products, etc. as well as shortcuts for common quantum operations and states such as coherent states, beamsplitters, partial tracing of states, calculation of von Neumann entropy, and more.
 
 `MENTAT` is designed primarily for use by researchers and PhD students in any application where the Fock state representation is used to analyse a quantum protocol or circuit. Research works enabled specifically by `MENTAT` are currently in preparation by the author, and we anticipate it to become an important resource for future works.
-
-# Mathematics
-
-Single dollars ($) are required for inline mathematics e.g. $f(x) = e^{\pi/x}$
-
-Double dollars make self-standing equations:
-
-$$\Theta(x) = \left\{\begin{array}{l}
-0\textrm{ if } x < 0\cr
-1\textrm{ else}
-\end{array}\right.$$
-
-You can also use plain \LaTeX for equations
-\begin{equation}\label{eq:fourier}
-\hat f(\omega) = \int_{-\infty}^{\infty} f(x) e^{i\omega x} dx
-\end{equation}
-and refer to \autoref{eq:fourier} from text.
 
 # Citations
 
@@ -73,7 +57,11 @@ Figure sizes can be customized by adding an optional second parameter:
 
 # Acknowledgements
 
-We acknowledge contributions from Brigitta Sipocz, Syrtis Major, and Semyeong
-Oh, and support from Kathryn Johnston during the genesis of this project.
+The Australian Government supported
+this research through the Australian Research Coun-
+cil’s Linkage Projects funding scheme (Project No.
+LP200100601). The views expressed herein are those of
+the authors and are not necessarily those of the Aus-
+tralian Government or the Australian Research Council.
 
 # References
