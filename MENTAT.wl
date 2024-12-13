@@ -2,15 +2,8 @@
 
 (* ::Text:: *)
 (*MENTAT package + documentation*)
-(*Nov 2024*)
+(*Oct 2024*)
 (*N. Zaunders, University of Queensland School of Mathematics and Physics*)
-(*"MENTAT: Human Input, Machine Speeds"*)
-(**)
-(*----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*)
-(**)
-(*To do:*)
-(*- BUGFIX: why is a creation operator on the symbolic nth mode a valid form but an annihilation operator is not?*)
-(*- Add logic for simplifying operator expressions like (3a . 3a . 3a) to 27(a.a.a) - not necessary, but makes things prettier. (Though this does occur sometimes??)*)
 
 
 BeginPackage["MENTAT`"];
@@ -39,19 +32,17 @@ isAnnihilationOperatorPower::usage="Returns True if argument is explicitly an an
 isOperatorComposition::usage="Returns True is argument is a CenterDot composition of creation or annihilation operators."
 isOperator::usage="Returns True if argument is a creation or annihilation operator or composition thereof."
 isOperatorSum::usage="Returns True if argument is a sum of creation or annihilation operator raised to any power."
-getCreateAnnihilateOperatorMode::usage="Returns mode index 'mode' of the input creation or annihilation operator \!\(\*SubscriptBox[OverscriptBox[\(a\), \(^\)], \(i\)]\)."
+getCreateAnnihilateOperatorMode::usage="Returns mode index 'mode' of the input creation or annihilation operator."
 getCreateAnnihilateOperatorPower::usage="Returns power pow of the input creation or annihilation operator."
 getCreateAnnihilateOperatorPre::usage="Returns prefactor pre of the input creation or annihilation operator."
 
 CoherentState::usage="Takes complex amplitude \[Alpha] and maximum Fock-state argument 'cutoff' and returns the ket state corresponding to the single-mode coherent state |\[Alpha]> up to cutoff. 
-					  Optional argument allows cutoff to be chosen such that truncation error is below epsilon."
-TwoModeSqueezedVacuumState::usage="Takes squeezing value \[Chi] and maximum Fock-state argument 'cutoff' and returns the ket state corresponding to the two-mode squeezed vacuum state |\[Chi]> up to cutoff.
-							Optional argument allows cutoff to be chosen such that truncation error is below epsilon."
+Optional argument allows cutoff to be chosen such that truncation error is below epsilon."
+TwoModeSqueezedVacuumState::usage="Takes squeezing value \[Chi] and maximum Fock-state argument 'cutoff' and returns the ket state corresponding to the two-mode squeezed vacuum state |\[Chi]> up to cutoff. Optional argument allows cutoff to be chosen such that truncation error is below epsilon."
 beamsplitter::usage="Implements beamsplitter functionality for a given ket-state x. Takes as input a single ket x, the beamsplitter transmissivity \[Tau], and the indices of the two modes to be mixed. Returns the ket state x' after the unitary beamsplitter is applied."
 partialTrace::usage="Partial trace calculator. Takes as input a density matrix x of a state with n modes and a list tracedModesList of length < n describing the indices of the modes to be traced out. Returns a density matrix x' corresponding to x with the specified modes traced out."
 generateNDArray::usage="Generates a list containing the basis Fock states of a Hilbert space corresponding to a system with number of modes numModes and maximum Fock-state argument cutoff. The list is of length (cutoff+1)^numModes."
-matrixRepresent::usage="Takes a given density matrix x and the Hilbert space characteristics numModes, cutoff and produces a numeric matrix isomorphic to that density matrix in the basis space {|n1,n2,...,nNumModes>} for \!\(\*FormBox[\(\*SubscriptBox[\(n\), \(i\)] < cutoff\),
-						TraditionalForm]\). Returns square matrix of dimension (cutoff+1)^numModes."
+matrixRepresent::usage="Takes a given density matrix x and the Hilbert space characteristics numModes, cutoff and produces a numeric matrix isomorphic to that density matrix in the basis space {|n1,n2,...,nNumModes>} for n_i < cutoff),). Returns square matrix of dimension (cutoff+1)^numModes."
 numericalMatrixFidelity::usage="Calculate the quantum fidelity of two positive semidefinite matrices x, y assuming they correspond to normalised and valid quantum states."
 vonNeumannEntropy::usage="Calculate the von Neumann entropy S(\[Rho]) of a density matrix state \[Rho]."
 fullTrace::usage="Calculates the trace of an input density matrix."
