@@ -19,6 +19,8 @@ where `path` is the directory location of the folder in which the MENTAT.wl file
 MENTAT requires Mathematica version 14.1.
 
 ## Features
+Features in MENTAT include:
+
  - Definition of quantum states via native ket, bra, and density matrix representations
  - General inner and outer product
  - Tensor product
@@ -28,6 +30,8 @@ MENTAT requires Mathematica version 14.1.
  - CV state generation (coherent state, two-mode squeezed vacuum state) with cutoff and minimum norm options
  - Conversion between Fock representation and vector representation
  - von Neumann entropy
+
+A basic guide to MENTAT's syntax can be found in [help.md](https://github.com/nicholaszaunders/MENTAT/blob/main/examples/help.md).
 
 ## Contribution
 
