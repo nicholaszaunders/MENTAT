@@ -420,8 +420,8 @@ CenterDot[x,CenterDot[z,y]]
 The tensor product is represented by the symbol c*, or \[CircleTimes].
  - For any two kets x=|a\[RightAngleBracket] and y=|b\[RightAngleBracket], x\[CircleTimes]y=|a,b\[RightAngleBracket]; 
  - For any two bras x=\[LeftAngleBracket]a| and y=\[LeftAngleBracket]b|, x\[CircleTimes]y=\[LeftAngleBracket]a,b|; 
- - For any two density matrices x=|Subscript[a, 1]\[RightAngleBracket]\[SmallCircle]\[LeftAngleBracket]Subscript[a, 2]|, y=|Subscript[b, 1]\[RightAngleBracket]\[SmallCircle]\[LeftAngleBracket]Subscript[b, 2]|,
- x\[CircleTimes]y=|Subscript[a, 1],Subscript[b, 1]\[RightAngleBracket]\[SmallCircle]\[LeftAngleBracket]Subscript[a, 2],Subscript[b, 2]|.
+ - For any two density matrices x=|a1\[RightAngleBracket]\[SmallCircle]\[LeftAngleBracket]a2|, y=|b1\[RightAngleBracket]\[SmallCircle]\[LeftAngleBracket]b2|,
+ x\[CircleTimes]y=|a1,b1\[RightAngleBracket]\[SmallCircle]\[LeftAngleBracket]a2,b2|.
 *)
 CircleTimes[x_?isKet,y_?isKet]:=
 getPre[x]*getPre[y]*Ket[Join[getNum[x],getNum[y]]]
@@ -1195,7 +1195,7 @@ Conjugate[x]
 (*Functionality*)
 
 
-(*Returns a ket state describing the coherent state Ket[\[Alpha]]for a complex amplitude \[Alpha]. 
+(*Returns a ket state describing the coherent state |\[Alpha]\[RightAngleBracket] for a complex amplitude \[Alpha]. 
 Since coherent states are infinite-dimension, a cutoff Fock number can be specified
 explicitly or chosen automatically such that for an explicit amplitude the state norm is
 minimally greater than some specified number.
@@ -1271,7 +1271,7 @@ Which[
 ]
 
 
-(*Implements the unitary operation Subscript[Overscript[U, ^], BS](\[Tau]) describing a two-mode beamsplitter of general
+(*Implements the unitary operation U(\[Tau]) describing a two-mode beamsplitter of general
 transmission \[Tau].
 
 Arguments:
@@ -1279,7 +1279,7 @@ Arguments:
  - mixList: list {i,j} describing the two indices i,j<=N corresponding to the input modes
  - \[Tau]: symbolic or numeric input between 0 and 1 describing the transmission of the beamsplitter.
  
- Returns the transformed state Subscript[Overscript[U, ^], BS](\[Tau])|\[Psi]\[RightAngleBracket].*)
+ Returns the transformed state U(\[Tau])|\[Psi]\[RightAngleBracket].*)
 beamsplitter[x_?isKet,mixList_List,\[Tau]_]:=
 Module[{
 	modeList=getNum[x],
