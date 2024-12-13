@@ -14,7 +14,7 @@ MENTAT is provided as a pre-built *Mathematica* 14.1 package file. To use MENTAT
 << "path\\MENTAT.wl"
 ```
 
-where `path` is the directory location of the folder in which the MENTAT.wl file is stored, e.g. `C:\\Users\\user\\...`, etc. The package has been imported successfully when running the above command shows the welcome message. You can also check that the package is working correctly by referencing the included test notebook [test-suite.nb](https://github.com/nicholaszaunders/MENTAT/blob/main/test-suite.nb).
+where `path` is the directory location of the folder in which the MENTAT.wl file is stored, e.g. `C:\\Users\\user\\...`, etc. The package has been imported successfully when running the above command shows the welcome message. You can also check that the package is working correctly by referencing the included test notebook and examples [examples](https://github.com/nicholaszaunders/MENTAT/tree/main/examples).
 
 MENTAT requires Mathematica version 14.1.
 
