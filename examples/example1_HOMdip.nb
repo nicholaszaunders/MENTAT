@@ -1,0 +1,316 @@
+(* Content-type: application/vnd.wolfram.mathematica *)
+
+(*** Wolfram Notebook File ***)
+(* http://www.wolfram.com/nb *)
+
+(* CreatedBy='Wolfram 14.1' *)
+
+(*CacheID: 234*)
+(* Internal cache information:
+NotebookFileLineBreakTest
+NotebookFileLineBreakTest
+NotebookDataPosition[       154,          7]
+NotebookDataLength[     11392,        308]
+NotebookOptionsPosition[      9580,        267]
+NotebookOutlinePosition[      9982,        283]
+CellTagsIndexPosition[      9939,        280]
+WindowFrame->Normal*)
+
+(* Beginning of Notebook Content *)
+Notebook[{
+
+Cell[CellGroupData[{
+Cell["\<\
+MENTAT Example 1: demonstrating the Hong-Ou-Mandel effect \
+(10.1103/PhysRevLett.59.2044)\
+\>", "Subsubsection",
+ CellChangeTimes->{{3.942968654795906*^9, 3.9429686700639076`*^9}, {
+  3.942968703312422*^9, 3.942968704064167*^9}, {3.942968856905657*^9, 
+  3.9429688569767704`*^9}, {3.943034857594593*^9, 
+  3.9430348586256065`*^9}},ExpressionUUID->"b20d8838-d302-4648-aa80-\
+24365745da40"],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{"Loading", " ", "the", " ", "MENTAT", " ", "package"}], " ", 
+   "*)"}], "\[IndentingNewLine]", 
+  RowBox[{
+  "<<", "\"\<C:\\\\Users\\\\uqnzaund\\\\OneDrive - The University of \
+Queensland\\\\Desktop\\\\Index\\\\Side \
+projects\\\\Mentat\\\\MENTAT\\\\MENTAT.wl\>\""}]}]], "Input",
+ CellChangeTimes->{
+  3.942968808485941*^9, {3.9429690919369545`*^9, 3.942969103666218*^9}, {
+   3.9429693882902107`*^9, 3.942969389074991*^9}, {3.9430348393345566`*^9, 
+   3.9430348397825413`*^9}, {3.9430351472035713`*^9, 3.9430351548608227`*^9}},
+ CellLabel->"In[1]:=",ExpressionUUID->"a641119d-82ca-0744-9e5a-af00d4e49e18"],
+
+Cell[CellGroupData[{
+
+Cell[BoxData["\<\"@MENTAT: Clearing kernel...\"\>"], "Print",
+ CellChangeTimes->{{3.9429688097150707`*^9, 3.9429688194941826`*^9}, 
+   3.94296898330966*^9, 3.9429691041889153`*^9, 3.942969389564541*^9, 
+   3.94297198703784*^9, 3.9430352964822617`*^9},
+ CellLabel->
+  "During evaluation of \
+In[1]:=",ExpressionUUID->"e98aae2b-9033-4a44-8f7e-168974af5aa4"],
+
+Cell[BoxData["\<\"@MENTAT: Loading package...\"\>"], "Print",
+ CellChangeTimes->{{3.9429688097150707`*^9, 3.9429688194941826`*^9}, 
+   3.94296898330966*^9, 3.9429691041889153`*^9, 3.942969389564541*^9, 
+   3.94297198703784*^9, 3.9430352964842644`*^9},
+ CellLabel->
+  "During evaluation of \
+In[1]:=",ExpressionUUID->"8ed42616-e040-c943-8c8f-58656e87ab55"],
+
+Cell[BoxData["\<\"@MENTAT: All functions loaded. \\nWelcome to MENTAT, a \
+computer algebra system for Fock-state calculations in bosonic optical \
+systems! Copyright N. Zaunders, University of Queensland, 2024. All rights \
+reserved.\"\>"], "Print",
+ CellChangeTimes->{{3.9429688097150707`*^9, 3.9429688194941826`*^9}, 
+   3.94296898330966*^9, 3.9429691041889153`*^9, 3.942969389564541*^9, 
+   3.94297198703784*^9, 3.943035296489212*^9},
+ CellLabel->
+  "During evaluation of \
+In[1]:=",ExpressionUUID->"3bf769ba-7abe-d14a-adae-fccf77dd958c"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{
+     RowBox[{
+     "Defining", " ", "the", " ", "state", " ", "\[Psi]A", " ", "that", " ", 
+      "will", " ", "be", " ", "input", " ", "into", " ", 
+      RowBox[{"the", " ", "'"}], 
+      RowBox[{"A", "'"}], " ", "mode", " ", "of", " ", "the", " ", 
+      RowBox[{"beamsplitter", ".", " ", "In"}], " ", "this", " ", "case", " ",
+       "it", " ", "is", " ", "a", " ", "single"}], "-", 
+     RowBox[{"photon", " ", "state"}]}], ",", " ", 
+    RowBox[{"so", " ", "we", " ", "simply", " ", "write", " ", 
+     RowBox[{
+      TemplateBox[{"1"},
+       "Ket"], "."}]}]}], " ", "*)"}], "\[IndentingNewLine]", 
+  RowBox[{"\[Psi]A", "=", 
+   TemplateBox[{"1"},
+    "Ket"]}]}]], "Input",
+ CellChangeTimes->{{3.9429686161489716`*^9, 3.9429686198724594`*^9}, {
+  3.94296871327046*^9, 3.942968776338415*^9}, {3.942968832498377*^9, 
+  3.9429688342572784`*^9}, {3.943035017448427*^9, 3.9430350879750023`*^9}, {
+  3.943035156824074*^9, 3.9430351587119923`*^9}},
+ CellLabel->"In[2]:=",ExpressionUUID->"e041c0bc-53c0-f244-b7dd-ae4406b36509"],
+
+Cell[BoxData[
+ TemplateBox[{"1"},
+  "Ket"]], "Output",
+ CellChangeTimes->{
+  3.942968777428211*^9, {3.9429688233020306`*^9, 3.942968834700926*^9}, 
+   3.942971987397812*^9, 3.9430351178310375`*^9, 3.943035300385103*^9},
+ CellLabel->"Out[2]=",ExpressionUUID->"67e27a4a-3716-d34e-aee7-49c8ad78cb57"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{
+    "Defining", " ", "the", " ", "state", " ", "\[Psi]B", " ", "that", " ", 
+     "will", " ", "be", " ", "input", " ", "into", " ", 
+     RowBox[{"the", " ", "'"}], 
+     RowBox[{"B", "'"}], " ", "mode", " ", "of", " ", "the", " ", 
+     RowBox[{"beamsplitter", ".", " ", "Again"}]}], ",", " ", 
+    RowBox[{
+     RowBox[{"we", " ", "write", " ", 
+      TemplateBox[{"1"},
+       "Ket"], " ", "for", " ", "a", " ", "single"}], "-", 
+     RowBox[{"photon", " ", 
+      RowBox[{"state", "."}]}]}]}], " ", "*)"}], "\[IndentingNewLine]", 
+  RowBox[{"\[Psi]B", "=", 
+   TemplateBox[{"1"},
+    "Ket"]}]}]], "Input",
+ CellChangeTimes->{{3.9430350902837143`*^9, 3.943035110659979*^9}, {
+  3.943035160647978*^9, 3.943035162580145*^9}},
+ CellLabel->"In[3]:=",ExpressionUUID->"88302aeb-79a6-a54a-8255-16ed66094f2c"],
+
+Cell[BoxData[
+ TemplateBox[{"1"},
+  "Ket"]], "Output",
+ CellChangeTimes->{3.943035119251137*^9, 3.9430353018271446`*^9},
+ CellLabel->"Out[3]=",ExpressionUUID->"51f22663-1353-654f-91e9-da771c68e077"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+   "Defining", " ", "our", " ", "joint", " ", "input", " ", "state", " ", 
+    "as", " ", "the", " ", "tensor", " ", "product", " ", "of", " ", "the", 
+    " ", "two", " ", "incoming", " ", 
+    RowBox[{"states", "."}]}], " ", "*)"}], "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{"\[CapitalPsi]In", "=", 
+    RowBox[{"\[Psi]A", "\[CircleTimes]", "\[Psi]B"}]}], 
+   "\[IndentingNewLine]"}]}]], "Input",
+ CellChangeTimes->{{3.943035113642132*^9, 3.943035115847849*^9}, {
+  3.9430351640720215`*^9, 3.9430352821365185`*^9}},
+ CellLabel->"In[4]:=",ExpressionUUID->"c4577d65-7aaf-ae43-b32f-5d8ccdea6280"],
+
+Cell[BoxData[
+ TemplateBox[{
+   RowBox[{"1", ",", "1"}]},
+  "Ket"]], "Output",
+ CellChangeTimes->{3.9430351210239315`*^9, 3.943035303298382*^9},
+ CellLabel->"Out[4]=",ExpressionUUID->"e11a0ccd-a41b-3e4c-a79d-499d20fe5a2c"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{
+    "Interference", " ", "of", " ", "the", " ", "two", " ", "input", " ", 
+     "modes", " ", "is", " ", "done", " ", "via", " ", "a", " ", "balanced", 
+     " ", "beamsplitter"}], ",", " ", 
+    RowBox[{
+     RowBox[{
+     "so", " ", "we", " ", "call", " ", "the", " ", "function", " ", 
+      "`beamsplitter`", " ", "and", " ", "pass", " ", "it"}], 
+     "\[IndentingNewLine]", "-", " ", 
+     RowBox[{"the", " ", "incoming", " ", "state", " ", 
+      RowBox[{"(", "\[CapitalPsi]In", ")"}]}]}], ",", "\[IndentingNewLine]", 
+    " ", 
+    RowBox[{
+     RowBox[{"-", " ", "a"}], " ", "list", " ", "of", " ", "the", " ", 
+     "indices", " ", "corresponding", " ", "to", " ", "the", " ", "modes", 
+     " ", "which", " ", "the", " ", "beamsplitter", " ", "is", " ", 
+     "interfering", " ", 
+     RowBox[{"(", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"1", ",", "2"}], "}"}], ",", " ", 
+       RowBox[{
+       "meaning", " ", "the", " ", "first", " ", "and", " ", "second", " ", 
+        "modes"}]}], ")"}]}], ",", "\[IndentingNewLine]", " ", 
+    RowBox[{
+     RowBox[{"-", " ", "the"}], " ", "transmission", " ", "of", " ", "the", 
+     " ", "beamsplitter", " ", 
+     RowBox[{
+      RowBox[{"(", 
+       RowBox[{
+        FractionBox["1", "2"], " ", "for", " ", "a", " ", "balanced", " ", 
+        "beamsplitter"}], ")"}], "."}]}]}], " ", "*)"}], 
+  "\[IndentingNewLine]", 
+  RowBox[{"\[CapitalPsi]Out", "=", 
+   RowBox[{"beamsplitter", "[", 
+    RowBox[{"\[CapitalPsi]In", ",", 
+     RowBox[{"{", 
+      RowBox[{"1", ",", "2"}], "}"}], ",", 
+     FractionBox["1", "2"]}], "]"}]}]}]], "Input",
+ CellChangeTimes->{{3.9430351243144455`*^9, 3.943035124454918*^9}, {
+  3.943035168040745*^9, 3.9430351709201355`*^9}, {3.9430353116406746`*^9, 
+  3.9430354942976303`*^9}},
+ CellLabel->"In[5]:=",ExpressionUUID->"3418b87f-2929-074f-92ea-516c59cc98c2"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"-", 
+   FractionBox[
+    TemplateBox[{
+      RowBox[{"0", ",", "2"}]},
+     "Ket"], 
+    SqrtBox["2"]]}], "+", 
+  FractionBox[
+   TemplateBox[{
+     RowBox[{"2", ",", "0"}]},
+    "Ket"], 
+   SqrtBox["2"]]}]], "Output",
+ CellChangeTimes->{3.9430354985504208`*^9},
+ CellLabel->"Out[5]=",ExpressionUUID->"caf6c53a-ead9-3245-84bb-28ab0afbe9fa"]
+}, Open  ]],
+
+Cell[BoxData[
+ RowBox[{"(*", " ", 
+  RowBox[{
+   RowBox[{
+   "Since", " ", "the", " ", "output", " ", "state", " ", "is", " ", "a", " ",
+     "superposition", " ", "of", " ", 
+    TemplateBox[{
+      RowBox[{"0", ",", "2"}]},
+     "Ket"], " ", "and", " ", 
+    TemplateBox[{
+      RowBox[{"2", ",", "0"}]},
+     "Ket"]}], ",", " ", 
+   RowBox[{
+   "the", " ", "probability", " ", "of", " ", "getting", " ", "one", " ", 
+    "photon", " ", "on", " ", "each", " ", "output", " ", "mode", " ", 
+    RowBox[{"(", 
+     TemplateBox[{
+       RowBox[{"1", ",", "1"}]},
+      "Ket"], ")"}], " ", "is", " ", 
+    RowBox[{"zero", "."}]}]}], " ", "*)"}]], "Input",
+ CellChangeTimes->{{3.9430355144088345`*^9, 
+  3.943035604096855*^9}},ExpressionUUID->"ed0b2e21-f365-cc43-9390-\
+79896ab06603"]
+}, Open  ]]
+},
+WindowSize->{1440, 831.75},
+WindowMargins->{{-6, Automatic}, {Automatic, -6}},
+FrontEndVersion->"14.1 for Microsoft Windows (64-bit) (July 16, 2024)",
+StyleDefinitions->"Default.nb",
+ExpressionUUID->"87f496e4-2814-414e-86e1-620df82629b5"
+]
+(* End of Notebook Content *)
+
+(* Internal cache information *)
+(*CellTagsOutline
+CellTagsIndex->{}
+*)
+(*CellTagsIndex
+CellTagsIndex->{}
+*)
+(*NotebookFileOutline
+Notebook[{
+Cell[CellGroupData[{
+Cell[576, 22, 398, 8, 43, "Subsubsection",ExpressionUUID->"b20d8838-d302-4648-aa80-24365745da40"],
+Cell[CellGroupData[{
+Cell[999, 34, 665, 13, 47, "Input",ExpressionUUID->"a641119d-82ca-0744-9e5a-af00d4e49e18"],
+Cell[CellGroupData[{
+Cell[1689, 51, 355, 6, 22, "Print",ExpressionUUID->"e98aae2b-9033-4a44-8f7e-168974af5aa4"],
+Cell[2047, 59, 355, 6, 22, "Print",ExpressionUUID->"8ed42616-e040-c943-8c8f-58656e87ab55"],
+Cell[2405, 67, 542, 9, 39, "Print",ExpressionUUID->"3bf769ba-7abe-d14a-adae-fccf77dd958c"]
+}, Open  ]]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[2996, 82, 1097, 24, 53, "Input",ExpressionUUID->"e041c0bc-53c0-f244-b7dd-ae4406b36509"],
+Cell[4096, 108, 297, 6, 35, "Output",ExpressionUUID->"67e27a4a-3716-d34e-aee7-49c8ad78cb57"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[4430, 119, 876, 21, 53, "Input",ExpressionUUID->"88302aeb-79a6-a54a-8255-16ed66094f2c"],
+Cell[5309, 142, 198, 4, 35, "Output",ExpressionUUID->"51f22663-1353-654f-91e9-da771c68e077"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[5544, 151, 657, 14, 66, "Input",ExpressionUUID->"c4577d65-7aaf-ae43-b32f-5d8ccdea6280"],
+Cell[6204, 167, 222, 5, 35, "Output",ExpressionUUID->"e11a0ccd-a41b-3e4c-a79d-499d20fe5a2c"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[6463, 177, 1927, 46, 126, "Input",ExpressionUUID->"3418b87f-2929-074f-92ea-516c59cc98c2"],
+Cell[8393, 225, 375, 14, 56, "Output",ExpressionUUID->"caf6c53a-ead9-3245-84bb-28ab0afbe9fa"]
+}, Open  ]],
+Cell[8783, 242, 781, 22, 31, "Input",ExpressionUUID->"ed0b2e21-f365-cc43-9390-79896ab06603"]
+}, Open  ]]
+}
+]
+*)
+

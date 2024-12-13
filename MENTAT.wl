@@ -45,7 +45,7 @@ getCreateAnnihilateOperatorPre::usage="Returns prefactor pre of the input creati
 
 CoherentState::usage="Takes complex amplitude \[Alpha] and maximum Fock-state argument 'cutoff' and returns the ket state corresponding to the single-mode coherent state |\[Alpha]> up to cutoff. 
 					  Optional argument allows cutoff to be chosen such that truncation error is below epsilon."
-SqueezedVacuumState::usage="Takes squeezing value \[Chi] and maximum Fock-state argument 'cutoff' and returns the ket state corresponding to the two-mode squeezed vacuum state |\[Chi]> up to cutoff.
+TwoModeSqueezedVacuumState::usage="Takes squeezing value \[Chi] and maximum Fock-state argument 'cutoff' and returns the ket state corresponding to the two-mode squeezed vacuum state |\[Chi]> up to cutoff.
 							Optional argument allows cutoff to be chosen such that truncation error is below epsilon."
 beamsplitter::usage="Implements beamsplitter functionality for a given ket-state x. Takes as input a single ket x, the beamsplitter transmissivity \[Tau], and the indices of the two modes to be mixed. Returns the ket state x' after the unitary beamsplitter is applied."
 partialTrace::usage="Partial trace calculator. Takes as input a density matrix x of a state with n modes and a list tracedModesList of length < n describing the indices of the modes to be traced out. Returns a density matrix x' corresponding to x with the specified modes traced out."
@@ -1050,9 +1050,9 @@ Conjugate[x]
 
 
 (*Returns a ket state describing the coherent state Ket[\[Alpha]]for a complex amplitude \[Alpha].
-Optional arguments allow the returned state to be specified either in terms of an explicit maximum Fock-state cutoff k, or alternatively a fraction F < 1 may be specified and
+Optional arguments allow the returned state to be specified either in terms of an explicit maximum Fock-state cutoff n, or alternatively a fraction F < 1 may be specified and
 the returned state will be the smallest-dimension state with norm >= F.*)
-Options[CoherentState]={k->-1,F->-1};
+Options[CoherentState]={n->-1,F->-1};
 
 CoherentState[\[Alpha]_,OptionsPattern[]]:=
 Module[{
@@ -1061,12 +1061,12 @@ Module[{
 	state
 },
 Which[
-	OptionValue[k]!=-1,
-		Sum[Exp[-(Abs[\[Alpha]]^2/2)] \[Alpha]^n/\[Sqrt](n!) Ket[{n}],{n,0,OptionValue[k]}],
+	OptionValue[n]!=-1,
+		Sum[Exp[-(Abs[\[Alpha]]^2/2)] \[Alpha]^k/\[Sqrt](k!) Ket[{k}],{k,0,OptionValue[n]}],
 		
 	OptionValue[F]!=-1&&NumericQ[\[Alpha]],
 		While[norm<=OptionValue[F],
-			state=Sum[Exp[-(Abs[\[Alpha]]^2/2)] \[Alpha]^n/\[Sqrt](n!) Ket[{n}],{n,0,i}];
+			state=Sum[Exp[-(Abs[\[Alpha]]^2/2)] \[Alpha]^k/\[Sqrt](k!) Ket[{k}],{k,0,i}];
 			norm=SuperDagger[state]\[CenterDot]state;
 			i=i+1;
 		];
@@ -1076,21 +1076,21 @@ Which[
 
 
 (*Returns a two-mode squeezed vacuum state Ket[\[Chi]] for squeezing \[Chi] = tanh(r) and maximum Fock-state element cutoff.*)
-Options[SqueezedVacuumState]={k->-1,F->-1};
+Options[TwoModeSqueezedVacuumState]={n->-1,F->-1};
 
-SqueezedVacuumState[\[Chi]_,OptionsPattern[]]:=
+TwoModeSqueezedVacuumState[\[Chi]_,OptionsPattern[]]:=
 Module[{
 	norm=0.0,
 	i=0,
 	state
 },
 Which[
-	OptionValue[k]!=-1,
-		Sum[\[Sqrt](1-\[Chi]^2) \[Chi]^n Ket[{n,n}],{n,0,OptionValue[k]}],
+	OptionValue[n]!=-1,
+		Sum[\[Sqrt](1-\[Chi]^2) \[Chi]^k Ket[{k,k}],{k,0,OptionValue[n]}],
 		
 	OptionValue[F]!=-1&&NumericQ[\[Chi]],
 		While[norm<=OptionValue[F],
-			state=Sum[\[Sqrt](1-\[Chi]^2) \[Chi]^n Ket[{n,n}],{n,0,i}];
+			state=Sum[\[Sqrt](1-\[Chi]^2) \[Chi]^k Ket[{k,k}],{k,0,i}];
 			norm=SuperDagger[state]\[CenterDot]state;
 			i=i+1;
 		];
