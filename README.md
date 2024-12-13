@@ -31,4 +31,4 @@ MENTAT requires Mathematica version 14.1.
 
 ## Contribution
 
-If you have a suggestion for functionality, or find a bug or issue, please feel free to raise an issue directly on Github! For general inquiries, feel free to email at **n.zaunders@uq.edu.au**.
+If you have a suggestion for functionality, or find a bug or issue, please feel free to raise an issue directly on Github. For general inquiries, feel free to email at **n.zaunders@uq.edu.au**.
