@@ -24,7 +24,7 @@ getNum::usage="Returns Fock basis of the input ket or bra."
 getNumDMLeft::usage="Returns Fock basis of the ket half of input density matrix."
 getNumDMRight::usage="Returns the Fock basis of the bra half of an input density matrix."
 
-isIdentity::usage="Returns True if argument is the identity operator \[ScriptCapitalI]. Currently unused."
+isIdentity::usage="Returns True if argument is the identity operator \[DoubleStruckCapitalI]."
 isCreationOperator::usage="Returns True if argument is a creation operator."
 isAnnihilationOperator::usage="Returns True if argument is an annihilation operator."
 isCreationOperatorPower::usage="Returns True if argument is explicitly a creation operator raised to a power."
@@ -36,8 +36,9 @@ getCreateAnnihilateOperatorMode::usage="Returns mode index of the input creation
 getCreateAnnihilateOperatorPower::usage="Returns power of the input creation or annihilation operator."
 getCreateAnnihilateOperatorPre::usage="Returns prefactor of the input creation or annihilation operator."
 
-CoherentState::usage="Takes complex amplitude \[Alpha] returns the ket state corresponding to the single-mode coherent state |\[Alpha]> to some cutoff photon number. Optional arguments allow cutoff to be explicitly, or be automatically determined such that truncation error is below a specified epsilon."
-TwoModeSqueezedVacuumState::usage="Takes two-mode squeezing \[Chi] and returns the ket state corresponding to the two-mode squeezed vacuum state |\[Chi]> to some cutoff photon number. Optional arguments allow cutoff to be explicitly, or be automatically determined such that truncation error is below a specified epsilon."
+CoherentState::usage="Takes complex amplitude \[Alpha] returns the ket state corresponding to the single-mode coherent state |\[Alpha]> to some cutoff photon number. Optional arguments allow cutoff to be specified explicitly, or be automatically determined such that truncation error is below a specified epsilon."
+TwoModeSqueezedVacuumState::usage="Takes two-mode squeezing \[Chi] and returns the ket state corresponding to the two-mode squeezed vacuum state |\[Chi]> to some cutoff photon number. Optional arguments allow cutoff to be specified explicitly, or be automatically determined such that truncation error is below a specified epsilon."
+SingleModeSqueezedVacuumState::usage="Takes single-mode squeezing r and returns the ket state corresponding to the single-mode squeezed vacuum state |r> to some cutoff photon number. Optional arguments allow cutoff to be specified explicitly, or be automatically determined such that truncation error is below a specified epsilon."
 beamsplitter::usage="Implements beamsplitter functionality for a given quantum state. Takes as input a single ket x, a list of the indices of the two modes to be mixed, and the beamsplitter transmissivity \[Tau]. Returns the ket state x' after the unitary beamsplitter is applied."
 partialTrace::usage="Partial trace calculator. Takes as input a density matrix x of a state with n modes and a list tracedModesList of length < n describing the indices of the modes to be traced out. Returns a density matrix x' corresponding to x with the specified modes traced out."
 generateNDArray::usage="Generates a list containing the basis Fock states of a Hilbert space corresponding to a system with number of modes numModes and maximum Fock-state argument cutoff. The list is of length (cutoff+1)^numModes."
@@ -61,7 +62,7 @@ Begin["`Private`"];
  with the header Ket multiplied by some arbitrary quantity.*)
 isKet[expr_]:=
 MatchQ[
-	expr,
+	Expand[expr],
 	_Ket|Times[_,_Ket]
 ]
 
@@ -70,7 +71,7 @@ MatchQ[
  a sum of kets.*)
 isKetState[expr_]:=
 MatchQ[
-	expr,
+	Expand[expr],
 	HoldPattern[\!\(\*
 TagBox[
 StyleBox[
@@ -87,7 +88,7 @@ FullForm]\)]
 Uses the same rules as the ket object but for the built-in header Bra.*)
 isBra[expr_]:=
 MatchQ[
-	expr,
+	Expand[expr],
 	_Bra|Times[_,_Bra]
 ]
 
@@ -96,7 +97,7 @@ MatchQ[
  a sum of bras.*)
 isBraState[expr_]:=
 MatchQ[
-	expr,
+	Expand[expr],
 	HoldPattern[\!\(\*
 TagBox[
 StyleBox[
@@ -114,7 +115,7 @@ ket object vector 'small-circle'-multiplied by a bra object. We use the SmallCir
 operator \[SmallCircle] to fill the definition of a density state class.*)
 isDensity[expr_]:=
 MatchQ[
-	expr,
+	Expand[expr],
 	SmallCircle[_Ket,_Bra]|Times[_,SmallCircle[_Ket,_Bra]]
 ]
 
@@ -123,7 +124,7 @@ MatchQ[
  object is a sum of density matrices.*)
 isDensityState[expr_]:=
 MatchQ[
-	expr,
+	Expand[expr],
 	HoldPattern[\!\(\*
 TagBox[
 StyleBox[
@@ -142,7 +143,7 @@ operator, etc. Essentially acts as a reverse filter to identify scalars, which
 can be numerical, symbolic, etc.*)
 isQuantum[expr_]:=
 MatchQ[
-	expr,
+	Expand[expr],
 	_?isKet|_?isBra|_?isDensity|_?isKetState|_?isBraState|_?isDensityState|_?isOperator|_?isOperatorSum
 ]
 
@@ -281,17 +282,21 @@ y*x
 CenterDot[Except[x_?isQuantum],y_?isKet|y_?isBra|y_?isDensity]:=
 x*y
 
-CenterDot[x_?isKetState|x_?isBraState|x_?isDensityState,Except[y_?isQuantum]]:=
-Sum[
-	y*x[[i]],
-	{i,Length[x]}
-]
+CenterDot[Except[x_?isQuantum],Except[y_?isQuantum]]:=
+x*y
+
 
 (*Distributivity for inner product with scalars.*)
+CenterDot[x_?isKetState|x_?isBraState|x_?isDensityState,Except[y_?isQuantum]]:=
+Sum[
+	y*Expand[x][[i]],
+	{i,Length[Expand[x]]}
+]
+
 CenterDot[Except[x_?isQuantum],y_?isKetState|y_?isBraState|y_?isDensityState]:=
 Sum[
-	x*y[[i]],
-	{i,Length[y]}
+	x*Expand[y][[i]],
+	{i,Length[Expand[y]]}
 ]
 
 
@@ -309,106 +314,121 @@ way is that we can explicitly exclude forbidden scenarios, like ket\[CenterDot]D
 or DM\[CenterDot]bra.*)
 CenterDot[x_?isBraState,y_?isKetState]:=
 Sum[
-	CenterDot[x[[i]],y[[j]]],
-	{i,Length[x]},
-	{j,Length[y]}
+	CenterDot[Expand[x][[i]],Expand[y][[j]]],
+	{i,Length[Expand[x]]},
+	{j,Length[Expand[y]]}
 ]
 
 CenterDot[x_?isBra,y_?isKetState]:=
 	Sum[
-	CenterDot[x,y[[j]]],
-	{j,Length[y]}
+	CenterDot[x,Expand[y][[j]]],
+	{j,Length[Expand[y]]}
 ]
 
 CenterDot[x_?isBraState,y_?isKet]:=
 Sum[
-	CenterDot[x[[i]],y],
-	{i,Length[x]}
+	CenterDot[Expand[x][[i]],y],
+	{i,Length[Expand[x]]}
 ]
 
 
 CenterDot[x_?isKetState,y_?isBraState]:=
 Sum[
-	CenterDot[x[[i]],y[[j]]],
-	{i,Length[x]},
-	{j,Length[y]}
+	CenterDot[Expand[x][[i]],Expand[y][[j]]],
+	{i,Length[Expand[x]]},
+	{j,Length[Expand[y]]}
 ]
 
 CenterDot[x_?isKet,y_?isBraState]:=
 Sum[
-	CenterDot[x,y[[j]]],
-	{j,Length[y]}
+	CenterDot[x,Expand[y][[j]]],
+	{j,Length[Expand[y]]}
 ]
 
 CenterDot[x_?isKetState,y_?isBra]:=
 Sum[
-	CenterDot[x[[i]],y],
-	{i,Length[x]}
+	CenterDot[Expand[x][[i]],y],
+	{i,Length[Expand[x]]}
 ]
 
 CenterDot[x_?isBraState,y_?isDensityState]:=
 Sum[
-	CenterDot[x[[i]],y[[j]]],
-	{i,Length[x]},
-	{j,Length[y]}
+	CenterDot[Expand[x][[i]],Expand[y][[j]]],
+	{i,Length[Expand[x]]},
+	{j,Length[Expand[y]]}
 ]
 
 CenterDot[x_?isBra,y_?isDensityState]:=
 Sum[
-	CenterDot[x,y[[j]]],
-	{j,Length[y]}
+	CenterDot[x,Expand[y][[j]]],
+	{j,Length[Expand[y]]}
 ]
 
 CenterDot[x_?isBraState,y_?isDensity]:=
 Sum[
-	CenterDot[x[[i]],y],
-	{i,Length[x]}
+	CenterDot[Expand[x][[i]],y],
+	{i,Length[Expand[x]]}
 ]
 
 
 CenterDot[x_?isDensityState,y_?isKetState]:=
 Sum[
-	CenterDot[x[[i]],y[[j]]],
-	{i,Length[x]},
-	{j,Length[y]}
+	CenterDot[Expand[x][[i]],Expand[y][[j]]],
+	{i,Length[Expand[x]]},
+	{j,Length[Expand[y]]}
 ]
 
 CenterDot[x_?isDensity,y_?isKetState]:=
 Sum[
-	CenterDot[x,y[[j]]],
-	{j,Length[y]}
+	CenterDot[x,Expand[y][[j]]],
+	{j,Length[Expand[y]]}
 ]
 
 CenterDot[x_?isDensityState,y_?isKet]:=
 Sum[
-	CenterDot[x[[i]],y],
-	{i,Length[x]}
+	CenterDot[Expand[x][[i]],y],
+	{i,Length[Expand[x]]}
 ]
 
 CenterDot[x_?isDensityState,y_?isDensityState]:=
 Sum[
-	CenterDot[x[[i]],y[[j]]],
-	{i,Length[x]},
-	{j,Length[y]}
+	CenterDot[Expand[x][[i]],Expand[y][[j]]],
+	{i,Length[Expand[x]]},
+	{j,Length[Expand[y]]}
 ]
 
 CenterDot[x_?isDensity,y_?isDensityState]:=
 Sum[
-	CenterDot[x,y[[j]]],
-	{j,Length[y]}
+	CenterDot[x,Expand[y][[j]]],
+	{j,Length[Expand[y]]}
 ]
 
 CenterDot[x_?isDensityState,y_?isDensity]:=
 Sum[
-	CenterDot[x[[i]],y],
-	{i,Length[x]}
+	CenterDot[Expand[x][[i]],y],
+	{i,Length[Expand[x]]}
 ]
 
 
 (*Extend inner product to be associative for expectation-value type products,
 where the multiplication is of the form \[LeftAngleBracket]a|\[CenterDot]b\[CenterDot]|c\[RightAngleBracket].*)
 CenterDot[x_?isBra|x_?isBraState,z_,y_?isKet|y_?isKetState]:=
-CenterDot[x,CenterDot[z,y]]
+CenterDot[Expand[x],CenterDot[Expand[z],Expand[y]]]
+
+
+(*Sets associativity for dot product. Only really useful for when multiple scalars are vector multiplied, i.e. 1\[CenterDot]1\[CenterDot]|n\[RightAngleBracket], etc.*)
+CenterDot[x__/;Length[List[x]]>=3]:=
+Module[
+	{args,len},
+	args=List[x];
+	len=Length[args];
+Do[
+	args[[-2]]=CenterDot[args[[-2]],args[[-1]]];
+	args=Drop[args,-1],
+	{i,len-2}
+];
+CenterDot[args[[-2]],args[[-1]]]
+]
 
 
 (* ::Section:: *)
@@ -445,14 +465,14 @@ x*y
 (*Distributivity for tensor product with scalars.*)
 CircleTimes[x_?isKetState|x_?isBraState|x_?isDensityState,Except[y_?isQuantum]]:=
 Sum[
-	y*x[[i]],
-	{i,Length[x]}
+	y*Expand[x][[i]],
+	{i,Length[Expand[x]]}
 ]
 
 CircleTimes[Except[x_?isQuantum],y_?isKetState|y_?isBraState|y_?isDensityState]:=
 Sum[
-	x*y[[i]],
-	{i,Length[y]}
+	x*Expand[y][[i]],
+	{i,Length[Expand[y]]}
 ]
 
 
@@ -483,61 +503,61 @@ by a ket, bra, density matrix or sum thereof, iterate the tensor product
 over each element where applicable and sum the result.*)
 CircleTimes[x_?isKetState,y_?isKetState]:=
 Sum[
-	CircleTimes[x[[i]],y[[j]]],
-	{i,Length[x]},
-	{j,Length[y]}
+	CircleTimes[Expand[x][[i]],Expand[y][[j]]],
+	{i,Length[Expand[x]]},
+	{j,Length[Expand[y]]}
 ]
 
 CircleTimes[x_?isKetState,y_?isKet]:=
 	Sum[
-	CircleTimes[x[[i]],y],
-	{i,Length[x]}
+	CircleTimes[Expand[x][[i]],y],
+	{i,Length[Expand[x]]}
 ]
 
 CircleTimes[x_?isKet,y_?isKetState]:=
 Sum[
-	CircleTimes[x,y[[j]]],
-	{j,Length[y]}
+	CircleTimes[x,Expand[y][[j]]],
+	{j,Length[Expand[y]]}
 ]
 
 
 CircleTimes[x_?isBraState,y_?isBraState]:=
 Sum[
-	CircleTimes[x[[i]],y[[j]]],
-	{i,Length[x]},
-	{j,Length[y]}
+	CircleTimes[Expand[x][[i]],Expand[y][[j]]],
+	{i,Length[Expand[x]]},
+	{j,Length[Expand[y]]}
 ]
 
 CircleTimes[x_?isBraState,y_?isBra]:=
 Sum[
-	CircleTimes[x[[i]],y],
-	{i,Length[x]}
+	CircleTimes[Expand[x][[i]],y],
+	{i,Length[Expand[x]]}
 ]
 
 CircleTimes[x_?isBra,y_?isBraState]:=
 Sum[
-	CircleTimes[x,y[[j]]],
-	{j,Length[y]}
+	CircleTimes[x,Expand[y][[j]]],
+	{j,Length[Expand[y]]}
 ]
 
 
 CircleTimes[x_?isDensityState,y_?isDensityState]:=
 Sum[
-	CircleTimes[x[[i]],y[[j]]],
-	{i,Length[x]},
-	{j,Length[y]}
+	CircleTimes[Expand[x][[i]],Expand[y][[j]]],
+	{i,Length[Expand[x]]},
+	{j,Length[Expand[y]]}
 ]
 
 CircleTimes[x_?isDensityState,y_?isDensity]:=
 Sum[
-	CircleTimes[x[[i]],y],
-	{i,Length[x]}
+	CircleTimes[Expand[x][[i]],y],
+	{i,Length[Expand[x]]}
 ]
 
 CircleTimes[x_?isDensity,y_?isDensityState]:=
 Sum[
-	CircleTimes[x,y[[j]]],
-	{j,Length[y]}
+	CircleTimes[x,Expand[y][[j]]],
+	{j,Length[Expand[y]]}
 ]
 
 
@@ -549,15 +569,19 @@ Sum[
 (*Identity operator*)
 
 
-(*Defining matching function for identity operator on a mode.*)
-(* !!! UNFINISHED !!! *)
-(*For some reason, the below function works when defined in a notebook but doesn't work when defined here. Revisit later.*)
+(*Defining matching function for identity operator on a mode.
+We define the identity operator in the standard way as the blackboard I, written in Mathematica as the 'double-struck' I, or [esc]dsI[esc].
+Note that the Verbatim call is needed such that the pattern matching is done directly to the symbol as it appears, and so Mathematica doesn't get confused by thinking it's a variable.*)
 (*isIdentity[expr_]:=
-SameQ[expr,\[DoubleStruckCapitalI]]*)
+MatchQ[
+	expr,
+	Verbatim[\[DoubleStruckCapitalI]]|Times[_,Verbatim[\[DoubleStruckCapitalI]]]
+];*)
+(*isIdentity[expr_]:=MatchQ[expr,Verbatim[\[DoubleStruckCapitalI]]]*)
 
 
-(*Defining vector multiplication dot product for identity operator.*)
-(* !!! UNFINISHED !!! *)
+(*Defining vector multiplication dot product for identity operator.
+When a quantum object interacts with the identity operator, it should return the object.*)
 (*CenterDot[x_?isQuantum,y_?isIdentity]:=
 x
 
@@ -965,113 +989,113 @@ CenterDot@@Join[]*)
 and quantum states.*)
 CenterDot[x_?isOperator,y_?isOperatorSum]:=
 Sum[
-	CenterDot[x,y[[i]]],
-	{i,Length[y]}
+	CenterDot[x,Expand[y][[i]]],
+	{i,Length[Expand[y]]}
 ]
 
 CenterDot[x_?isOperatorSum,y_?isOperator]:=
 Sum[
-	CenterDot[x[[i]],y],
-	{i,Length[x]}
+	CenterDot[Expand[x][[i]],y],
+	{i,Length[Expand[x]]}
 ]
 
 CenterDot[x_?isOperatorSum,y_?isOperatorSum]:=
 Sum[
-	CenterDot[x[[i]],y[[j]]],
-	{i,Length[x]},
-	{j,Length[y]}
+	CenterDot[Expand[x][[i]],Expand[y][[j]]],
+	{i,Length[Expand[x]]},
+	{j,Length[Expand[y]]}
 ]
 
 
 CenterDot[x_?isOperator,y_?isKetState]:=
 Sum[
-	CenterDot[x,y[[i]]],
-	{i,Length[y]}
+	CenterDot[x,Expand[y][[i]]],
+	{i,Length[Expand[y]]}
 ]
 
 CenterDot[x_?isOperatorSum,y_?isKet]:=
 Sum[
-	CenterDot[x[[i]],y],
-	{i,Length[x]}
+	CenterDot[Expand[x][[i]],y],
+	{i,Length[Expand[x]]}
 ]
 
 CenterDot[x_?isOperatorSum,y_?isKetState]:=
 Sum[
-CenterDot[x[[i]],y[[j]]],
-	{i,Length[x]},
-	{j,Length[y]}
+CenterDot[Expand[x][[i]],Expand[y][[j]]],
+	{i,Length[Expand[x]]},
+	{j,Length[Expand[y]]}
 ]
 
 
 CenterDot[x_?isBraState,y_?isOperator]:=
 Sum[
-	CenterDot[x[[i]],y],
-	{i,Length[x]}
+	CenterDot[Expand[x][[i]],y],
+	{i,Length[Expand[x]]}
 ]
 
 CenterDot[x_?isBra,y_?isOperatorSum]:=
 Sum[
-	CenterDot[x,y[[j]]],
-	{j,Length[y]}
+	CenterDot[x,Expand[y][[j]]],
+	{j,Length[Expand[y]]}
 ]
 
 CenterDot[x_?isBraState,y_?isOperatorSum]:=
 Sum[
-	CenterDot[x[[i]],y[[j]]],
-	{i,Length[x]},
-	{j,Length[y]}
+	CenterDot[Expand[x][[i]],Expand[y][[j]]],
+	{i,Length[Expand[x]]},
+	{j,Length[Expand[y]]}
 ]
 
 
 CenterDot[x_?isOperator,y_?isDensityState]:=
 Sum[
-	CenterDot[x,y[[j]]],
-	{j,Length[y]}
+	CenterDot[x,Expand[y][[j]]],
+	{j,Length[Expand[y]]}
 ]
 
 CenterDot[x_?isOperatorSum,y_?isDensity]:=
 Sum[
-	CenterDot[x[[i]],y],
-	{i,Length[x]}
+	CenterDot[Expand[x][[i]],y],
+	{i,Length[Expand[x]]}
 ]
 
 CenterDot[x_?isOperatorSum,y_?isDensityState]:=
 Sum[
-	CenterDot[x[[i]],y[[j]]],
-	{i,Length[x]},
-	{j,Length[y]}
+	CenterDot[Expand[x][[i]],Expand[y][[j]]],
+	{i,Length[Expand[x]]},
+	{j,Length[Expand[y]]}
 ]
 
 
 CenterDot[x_?isDensity,y_?isOperatorSum]:=
 Sum[
-	CenterDot[x,y[[j]]],
-	{j,Length[y]}
+	CenterDot[x,Expand[y][[j]]],
+	{j,Length[Expand[y]]}
 ]
 
 CenterDot[x_?isDensityState,y_?isOperator]:=
 Sum[
-	CenterDot[x[[i]],y],
-	{i,Length[x]}
+	CenterDot[Expand[x][[i]],y],
+	{i,Length[Expand[x]]}
 ]
 
 CenterDot[x_?isDensityState,y_?isOperatorSum]:=
 Sum[
-	CenterDot[x[[i]],y[[j]]],
-	{i,Length[x]},
-	{j,Length[y]}
+	CenterDot[Expand[x][[i]],Expand[y][[j]]],
+	{i,Length[Expand[x]]},
+	{j,Length[Expand[y]]}
 ]
 
 
 (*Extend inner product to be associative for expectation-value type products,
 where the multiplication is of the form quantum state\[CenterDot]operator\[CenterDot]quantum state.*)
 CenterDot[x_?isBra|x_?isBraState|x_?isDensity|x_?isDensityState,z_?isOperator|z_?isOperatorSum,y_?isKet|y_?isKetState|y_?isDensity|y_?isDensityState]:=
-CenterDot[x,CenterDot[z,y]]
+CenterDot[Expand[x],CenterDot[Expand[z],Expand[y]]]
 
 
 (*Extend inner product to be associative for the special case of operator\[CenterDot]density matrix\[CenterDot]operator.*)
 CenterDot[x_?isOperator|x_?isOperatorSum,z_?isDensity|z_?isDensityState,y_?isOperator|y_?isOperatorSum]:=
-CenterDot[x,CenterDot[y,z]]
+CenterDot[Expand[x],CenterDot[Expand[y],Expand[z]]]
 
 
 (*Extension to scalar behaviour for operators.*)
@@ -1086,14 +1110,14 @@ x*y
 (*Define distributivity of operators with scalars.*)
 CenterDot[x_?isOperatorSum,Except[y_?isQuantum]]:=
 Sum[
-y*x[[i]],
-{i,Length[x]}
+y*Expand[x][[i]],
+{i,Length[Expand[x]]}
 ]
 
 CenterDot[Except[x_?isQuantum],y_?isOperatorSum]:=
 Sum[
-x*y[[j]],
-{j,Length[y]}
+x*Expand[y][[j]],
+{j,Length[Expand[y]]}
 ]
 
 
@@ -1123,20 +1147,20 @@ Conjugate[getPre[x]]*SmallCircle[Ket[getNumDMRight[x]],Bra[getNumDMLeft[x]]]
 (*Define distributivity of the conjugate transpose for quantum states.*)
 SuperDagger[x_?isKetState]:=
 Sum[
-	SuperDagger[x[[i]]],
-	{i,Length[x]}
+	SuperDagger[Expand[x][[i]]],
+	{i,Length[Expand[x]]}
 ]
 
 SuperDagger[x_?isBraState]:=
 Sum[
-	SuperDagger[x[[i]]],
-	{i,Length[x]}
+	SuperDagger[Expand[x][[i]]],
+	{i,Length[Expand[x]]}
 ]
 
 SuperDagger[x_?isDensityState]:=
 Sum[
-	SuperDagger[x[[i]]],
-	{i,Length[x]}
+	SuperDagger[Expand[x][[i]]],
+	{i,Length[Expand[x]]}
 ]
 
 
@@ -1176,8 +1200,8 @@ Times[Conjugate[pre],Power[SuperDagger[Subscript[OverHat[a],mode]],pow]]
 (*Define distributivity of the conjugate transpose for operators over addition.*)
 SuperDagger[x_?isOperatorSum]:=
 Sum[
-	SuperDagger[x[[i]]],
-	{i,Length[x]}
+	SuperDagger[Expand[x][[i]]],
+	{i,Length[Expand[x]]}
 ]
 
 
@@ -1197,8 +1221,8 @@ Conjugate[x]
 
 (*Returns a ket state describing the coherent state |\[Alpha]\[RightAngleBracket] for a complex amplitude \[Alpha]. 
 Since coherent states are infinite-dimension, a cutoff Fock number can be specified
-explicitly or chosen automatically such that for an explicit amplitude the state norm is
-minimally greater than some specified number.
+explicitly or chosen automatically such that for an explicit amplitude the state norm
+is at least greater than some specified number.
 
 Arguments
  - \[Alpha]: symbolic or numeric input corresponding to the complex amplitude of the state
@@ -1236,7 +1260,7 @@ Which[
 (*Returns a ket state describing the two-mode squeezed vacuum (TMSV) state |\[Chi]\[RightAngleBracket] for
 squeezing 0<=\[Chi]<=1. Since TMSV states are infinite-dimension, a cutoff Fock number can be
 specified explicitly or chosen automatically such that for an explicit amplitude the
-state norm is minimally greater than some specified number.
+state norm is at least greater than some specified number.
 
 Arguments:
  - \[Chi]: symbolic or numeric input between 0 and 1 corresponding to the two-mode squeezing.
@@ -1263,6 +1287,43 @@ Which[
 	OptionValue[F]!=-1&&NumericQ[\[Chi]],
 		While[norm<=OptionValue[F],
 			state=Sum[\[Sqrt](1-\[Chi]^2) \[Chi]^k Ket[{k,k}],{k,0,i}];
+			norm=SuperDagger[state]\[CenterDot]state;
+			i=i+1;
+		];
+		Return[state]
+]
+]
+
+
+(*Returns a ket state describing the single-mode squeezed vacuum state |r\[RightAngleBracket] for
+squeezing 0<=r<=1. Since squeezed states are infinite-dimension, a cutoff Fock number can be
+specified explicitly or chosen automatically such that for an explicit amplitude the
+state norm is at least greater than some specified number.
+
+Arguments:
+ - r: symbolic or numeric input between 0 and 1 corresponding to the single-mode squeezing.
+
+Optional arguments:
+ - n: explicit Fock number cutoff. Cannot be specified together with F.
+ - F: numeric value between 0 and 1. Cannot be specified together with n.
+ When F is specified, the function returns the ket state with squeezing \[Chi] truncated to
+ Fock number m such that m is the smallest integer where the norm of the state is >= F.
+ \[Chi] must be a numeric value.*)
+Options[SingleModeSqueezedVacuumState]={n->-1,F->-1};
+
+SingleModeSqueezedVacuumState[r_,OptionsPattern[]]:=
+Module[{
+	norm=0.0,
+	i=0,
+	state
+},
+Which[
+	OptionValue[n]!=-1,
+		Sum[1/\[Sqrt]Cosh[r]*\[Sqrt]((2k)!)/(2^k k!) Tanh[r^k] Ket[{2k}],{k,0,OptionValue[n]}],
+		
+	OptionValue[F]!=-1&&NumericQ[r],
+		While[norm<=OptionValue[F],
+			state=Sum[1/\[Sqrt]Cosh[r]*\[Sqrt]((2k)!)/(2^k k!) Tanh[r^k] Ket[{2k}],{k,0,i}];
 			norm=SuperDagger[state]\[CenterDot]state;
 			i=i+1;
 		];
@@ -1301,8 +1362,8 @@ Expand[
 (*Defines distributivity for the beamsplitter operation.*)
 beamsplitter[x_?isKetState,mixList_List,\[Tau]_]:=
 Sum[
-	beamsplitter[x[[i]],mixList,\[Tau]],
-	{i,Length[x]}
+	beamsplitter[Expand[x][[i]],mixList,\[Tau]],
+	{i,Length[Expand[x]]}
 ]
 
 
@@ -1335,8 +1396,8 @@ If[
 (*Define distributivity of the partial trace operation.*)
 partialTrace[x_?isDensityState,tracedModesList_List]:=
 Sum[
-	partialTrace[x[[i]],tracedModesList],
-	{i,Length[x]}
+	partialTrace[Expand[x][[i]],tracedModesList],
+	{i,Length[Expand[x]]}
 ]
 
 
@@ -1433,9 +1494,18 @@ If[
 
 fullTrace[x_?isDensityState]:=
 Sum[
-	fullTrace[x[[i]]],
-	{i,Length[x]}
+	fullTrace[Expand[x][[i]]],
+	{i,Length[Expand[x]]}
 ]
+
+
+Protect[Ket];
+Protect[Bra];
+Protect[CenterDot];
+Protect[SmallCircle];
+Protect[CircleTimes];
+Protect[SuperDagger];
+(*Protect[DoubleStruckCapitalI]*)
 
 
 Print["@MENTAT: All functions loaded. 
