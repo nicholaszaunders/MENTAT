@@ -36,3 +36,4 @@ A basic guide to MENTAT's syntax can be found in [help.md](https://github.com/ni
 ## Contribution
 
 If you have a suggestion for functionality, or find a bug or issue, please feel free to raise an issue directly on Github. For general inquiries, feel free to email at **n.zaunders@uq.edu.au**.
+If you have used MENTAT for your research, please cite it using the DOI [![DOI](https://zenodo.org/badge/885098771.svg)](https://doi.org/10.5281/zenodo.15171089).
